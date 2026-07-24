@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>703所班车路线地图 - 精准坐标版</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
+  onerror="this.onerror=null;this.href='https://cdn.bootcdn.net/ajax/libs/leaflet/1.9.4/leaflet.min.css'">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Microsoft YaHei','PingFang SC',sans-serif;background:#1a1a2e}
+#container{display:flex;height:100vh}
+#map{flex:1;min-height:500px;background:#e8e4db}
+#panel{width:370px;background:#16213e;color:#eee;overflow-y:auto;padding:14px;font-size:12px}
+#panel h2{color:#e94560;margin-bottom:2px;font-size:17px}
+#panel h3{color:#f0a500;margin:10px 0 4px;font-size:13px;border-bottom:1px solid #333;padding-bottom:3px}
+.subtitle{color:#999;font-size:10px;margin-bottom:6px}
+.stats{background:rgba(255,255,255,0.05);border-radius:6px;padding:6px 10px;margin:6px 0;font-size:11px}
+.stats span{color:#f0a500;font-weight:bold}
+.btn{display:inline-block;padding:5px 10px;margin:3px;background:#e94560;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:11px}
+.btn:hover{background:#ff6b81}
+.btn.sm{background:#0f3460;font-size:10px;padding:3px 7px}
+.btn.sm:hover{background:#1a4a7a}
+.section-hdr{cursor:pointer;user-select:none;display:flex;align-items:center;margin-top:2px;list-style:none;color:#f0a500;margin:10px 0 4px;font-size:13px;border-bottom:1px solid #333;padding-bottom:3px}
+.section-hdr::-webkit-details-marker{display:none}
+.section-hdr::marker{display:none;content:''}
+.section-hdr .arrow{transition:transform .2s;margin-right:5px;font-size:9px;display:inline-block;width:10px}
+details[open] .section-hdr .arrow{transform:rotate(0deg)}
+details:not([open]) .section-hdr .arrow{transform:rotate(-90deg)}
+.section-body{overflow:hidden}
+.route-row{margin:1px 0;font-size:10px;display:flex;align-items:center;padding:2px 5px;border-radius:3px;cursor:pointer;transition:background .15s}
+.route-row:hover{background:rgba(255,255,255,0.08)}
+.route-row.off{opacity:.35}
+.route-row input{margin-right:5px;flex-shrink:0;transform:scale(.85);cursor:pointer}
+.route-dot{width:8px;height:8px;border-radius:50%;margin:0 5px;flex-shrink:0;border:1px solid rgba(255,255,255,.4)}
+.route-label{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.solo-btn{background:none;border:1px solid rgba(255,255,255,.15);color:#999;font-size:9px;padding:0 4px;border-radius:2px;cursor:pointer;flex-shrink:0;margin-left:3px;line-height:15px}
+.solo-btn:hover{color:#fff;border-color:#e94560;background:rgba(233,69,96,.2)}
+#route-counter{font-size:10px;color:#999;margin:2px 0}
+.rental-tag{background:#e94560;color:#fff;padding:2px 7px;border-radius:3px;font-size:10px;white-space:nowrap;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+.info-popup{font-size:11px;line-height:1.6}
+.info-popup b{color:#e94560}
+@media(max-width:768px){#container{flex-direction:column}#panel{width:100%;max-height:32vh}}
+</style>
+</head>
+<body>
+<div id="container">
+<div id="map"></div>
+<div id="panel">
+  <h2>🚌 703所班车路线图（全44线）</h2>
+  <div class="subtitle">高德道路路线 · 目的地: 洪湖路35号 · 职工通勤34线+加班7+红旗3</div>
+  <div class="stats">📊 <span>34条</span>通勤+7加班+3红旗=<span>44条</span>线路 · <span>275</span>站点 · 高德精准坐标+道路路线</div>
+  <div>
+    <button class="btn" onclick="showAll()">✅ 全部显示</button>
+    <button class="btn sm" onclick="hideAll()">❌ 全部隐藏</button>
+    <button class="btn sm" onclick="map.fitBounds(allBounds)">🔍 全图</button>
+    <button class="btn sm" onclick="fitBest()">📍 推荐区</button>
+    <div id="route-counter">👁 显示: <span id="visible-count">44</span>/44 条</div>
+  </div>
+  <input type="text" id="search-box" placeholder="🔍 搜索线路/站点..." style="width:100%;padding:5px 8px;margin:6px 0;background:#0f3460;color:#eee;border:1px solid #333;border-radius:4px;font-size:11px" oninput="filterRoutes()">
+  <h3>🏢 目的地</h3>
+  <div style="font-size:11px;padding:2px 6px;">🔴 <b>所部（洪湖路35号）</b></div>
+  <details open>
+    <summary class="section-hdr"><span class="arrow">▼</span> 🟢 职工通勤（34条·每日）</summary>
+    <div class="section-body" id="tq-body">{{TQ_SIDEBAR}}</div>
+  </details>
+  <details open>
+    <summary class="section-hdr"><span class="arrow">▼</span> 🟡 周六加班（7条）</summary>
+    <div class="section-body" id="jb-body">{{JB_SIDEBAR}}</div>
+  </details>
+  <details open>
+    <summary class="section-hdr"><span class="arrow">▼</span> 🔵 红旗大街（3条·周五/日）</summary>
+    <div class="section-body" id="hq-body">{{HQ_SIDEBAR}}</div>
+  </details>
+  <h3>🏘️ 推荐租房（一室·近站·配套全）</h3>
+  <div class="stats" style="font-size:10px;line-height:1.7">
+    🥇 <b>群力第五大道</b>（12号·06:55~07:08）<br> 恒祥空间 ¥1,650~2,100 | 银泰城<br>
+    🥈 <b>哈西</b>（9号·06:45~07:00）<br> 金域蓝城 ¥1,800 | 哈西万达<br>
+    🥉 <b>群力东·天鹅湾</b>（14号·06:40~06:53）<br> 天鹅湾 ¥1,500~2,000 | 群力远大<br>
+    4️⃣ <b>香坊三合路</b>（2号·06:40~06:50）<br> 绿海华庭 ¥1,200~1,800 | 乐松
+  </div>
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"
+  onerror="var s=document.createElement('script');s.src='https://cdn.bootcdn.net/ajax/libs/leaflet/1.9.4/leaflet.min.js';document.head.appendChild(s);">
+</script>
+<script>
+var DEST=[{{DEST_LAT}},{{DEST_LNG}}];
+var map, allBounds, routeLayers={};
+var _allLines=[]; // track polylines for zoom-scaling
+
+var TQ={{TQ_DATA}};
+var JB={{JB_DATA}};
+var HQ={{HQ_DATA}};
+var ROUTE_POLYLINES={{ROUTE_POLYLINES}};
+
+function initMap(){
+  if(typeof L==='undefined'){ setTimeout(initMap,300); return; }
+
+  map=L.map('map',{center:[45.71,126.62],zoom:11});
+
+  L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',
+    {subdomains:['1','2','3','4'],maxZoom:18}).addTo(map);
+
+  allBounds=L.latLngBounds([DEST]);
+
+  // 目的地
+  L.circleMarker(DEST,{radius:11,color:'#fff',fillColor:'#f00',fillOpacity:.9,weight:3})
+    .bindPopup('<div class="info-popup"><b>🏢 703所部</b><br>洪湖路35号</div>').addTo(map);
+
+  var allRoutes=[];
+
+  [TQ,JB,HQ].forEach(function(set,si){
+    set.forEach(function(d){
+      var name=d[0], color=d[1], stops=d[2];
+      var id='r_'+allRoutes.length;
+      var g=L.layerGroup();
+
+      stops.forEach(function(s,i){
+        var lng=s[1], lat=s[2];
+        allBounds.extend([lat,lng]);
+        L.circleMarker([lat,lng],{radius:5,color:'#fff',fillColor:color,fillOpacity:.9,weight:1.5})
+          .bindPopup('<div class="info-popup"><b>'+name+'</b><br>📍 '+s[0]+'<br>🕐 '+s[3]+' · 第'+(i+1)+'站</div>').addTo(g);
+      });
+
+      // Draw route line: use road polyline if available, fall back to straight lines
+      var zw=map.getZoom();
+      var routeW=Math.max(1, 3*zw/11);    // scale with zoom
+      var destW=Math.max(0.5, 1.5*zw/11);
+
+      var roadData = ROUTE_POLYLINES[name];
+      var routeLine=null, destLine=null;
+      if (roadData && roadData.polyline && roadData.polyline.length > 0) {
+        routeLine=L.polyline(roadData.polyline, {color:color,weight:routeW,opacity:.6}).addTo(g);
+        var step = Math.max(1, Math.floor(roadData.polyline.length / 20));
+        for (var pi = 0; pi < roadData.polyline.length; pi += step) {
+          allBounds.extend(roadData.polyline[pi]);
+        }
+      } else {
+        var segs=[];
+        for (var i = 0; i < stops.length - 1; i++) {
+          var sl=L.polyline([[stops[i][2],stops[i][1]],[stops[i+1][2],stops[i+1][1]]],
+            {color:color,weight:routeW,opacity:.55,dashArray:'6 4'}).addTo(g);
+          _allLines.push({line:sl, baseW:3});
+        }
+      }
+      if(routeLine) _allLines.push({line:routeLine, baseW:3});
+
+      // Last stop -> destination line
+      if (stops.length > 0) {
+        var last = stops[stops.length - 1];
+        if (roadData && roadData.to_dest && roadData.to_dest.length > 0) {
+          destLine=L.polyline(roadData.to_dest, {color:color,weight:destW,opacity:.3,dashArray:'4 6'}).addTo(g);
+        } else {
+          destLine=L.polyline([[last[2],last[1]],DEST],{color:color,weight:destW,opacity:.3,dashArray:'4 6'}).addTo(g);
+        }
+        if(destLine) _allLines.push({line:destLine, baseW:1.5});
+      }
+
+      g.addTo(map);
+      routeLayers[id]={layer:g, name:name, color:color, cat:si===0?'tq':si===1?'jb':'hq'};
+      allRoutes.push({id:id, name:name, color:color, group:si===0?'tq':si===1?'jb':'hq'});
+    });
+  });
+
+  allBounds.extend(DEST);
+  map.fitBounds(allBounds.padding([30,30]));
+
+  // Zoom-based line weight scaling
+  map.on('zoomend',function(){
+    var z=map.getZoom();
+    for(var i=0;i<_allLines.length;i++){
+      var item=_allLines[i];
+      var w=Math.max(item.baseW*0.3, item.baseW*z/11);
+      item.line.setStyle({weight:w});
+    }
+  });
+
+  bindSidebarEvents();
+
+  // 推荐租房标注
+  [{name:'🥇 群力第五大道',lat:45.740,lng:126.565,desc:'12号通勤·06:55~07:08<br>恒祥空间¥1,650~2,100<br>银泰城+王府井·健身房密集',color:'#f33'},
+   {name:'🥈 哈西万达',lat:45.703,lng:126.595,desc:'9号通勤·06:45~07:00<br>金域蓝城¥1,800<br>哈西万达+西城红场',color:'#f70'},
+   {name:'🥉 群力东·天鹅湾',lat:45.744,lng:126.578,desc:'14号通勤·06:40~06:53<br>天鹅湾¥1,500~2,000<br>群力远大+上江街',color:'#f90'},
+   {name:'4️⃣ 香坊三合路',lat:45.722,lng:126.676,desc:'2号通勤·06:40~06:50<br>绿海华庭¥1,200~1,800<br>乐松广场·性价比高',color:'#fb0'}
+  ].forEach(function(a){
+    var icon=L.divIcon({className:'',html:'<div class="rental-tag" style="background:'+a.color+'">'+a.name+'</div>',iconSize:[0,0],iconAnchor:[55,12]});
+    L.marker([a.lat,a.lng],{icon:icon,zIndexOffset:1000}).addTo(map).bindPopup('<div class="info-popup"><b>'+a.name+'</b><br>'+a.desc+'</div>');
+    allBounds.extend([a.lat,a.lng]);
+  });
+
+  L.control({position:'bottomleft'}).onAdd=function(){
+    var d=L.DomUtil.create('div','');
+    d.style.cssText='background:rgba(0,0,0,0.75);color:#fff;padding:8px 12px;border-radius:6px;font-size:10px;line-height:1.8;';
+    d.innerHTML='<b>图例</b><br><span style="color:#2ecc71;">━</span> 通勤(每日34条)<br><span style="color:#f39c12;">━</span> 加班(周六7条)<br><span style="color:#3498db;">━</span> 红旗(周五/日3条)<br><span style="color:#f00;">●</span> 所部<br><span style="color:#f33;">🏘️</span> 推荐租房区';
+    return d;
+  }.addTo(map);
+}
+
+function updateCounter(){
+  var vis=0, total=0;
+  for(var k in routeLayers){ total++; if(map.hasLayer(routeLayers[k].layer)) vis++; }
+  var el=document.getElementById('visible-count');
+  if(el) el.textContent=vis;
+}
+
+function toggleRouteById(id, show){
+  var rl=routeLayers[id];
+  if(!rl) return;
+  if(show) rl.layer.addTo(map);
+  else map.removeLayer(rl.layer);
+  var row=document.querySelector('.route-row[data-rid="'+id+'"]');
+  if(row){ row.classList.toggle('off',!show); var cb=row.querySelector('input'); if(cb) cb.checked=show; }
+  updateCounter();
+}
+
+function soloRoute(id){
+  for(var k in routeLayers) toggleRouteById(k, k===id);
+}
+
+function rowToggle(row){
+  var rid=row.getAttribute('data-rid');
+  var cb=row.querySelector('input');
+  if(cb){ cb.checked=!cb.checked; toggleRouteById(rid, cb.checked); }
+}
+function rowCheck(cb){
+  var row=cb.parentElement;
+  var rid=row.getAttribute('data-rid');
+  toggleRouteById(rid, cb.checked);
+}
+function rowSolo(btn){
+  var row=btn.parentElement;
+  var rid=row.getAttribute('data-rid');
+  soloRoute(rid);
+}
+
+function bindSidebarEvents(){
+  // Setup done via inline onclick in static HTML - nothing needed here
+}
+
+document.addEventListener('DOMContentLoaded',function(){
+  if(typeof L!=='undefined') initMap();
+  else setTimeout(function(){if(typeof L!=='undefined')initMap();else alert('Leaflet加载失败，请开启VPN后刷新');},5000);
+});
+if(typeof L!=='undefined') initMap();
+
+function showAll(){for(var k in routeLayers)routeLayers[k].layer.addTo(map);var rows=document.querySelectorAll('.route-row');for(var i=0;i<rows.length;i++){rows[i].querySelector('input').checked=true;rows[i].classList.remove('off');}updateCounter();}
+function hideAll(){for(var k in routeLayers)map.removeLayer(routeLayers[k].layer);var rows=document.querySelectorAll('.route-row');for(var i=0;i<rows.length;i++){rows[i].querySelector('input').checked=false;rows[i].classList.add('off');}updateCounter();}
+function fitBest(){map.fitBounds([[45.69,126.54],[45.75,126.60]],{padding:[20,20]});}
+function filterRoutes(){
+  var q=document.getElementById('search-box').value.toLowerCase();
+  var rows=document.querySelectorAll('.route-row');
+  for(var i=0;i<rows.length;i++){
+    var lbl=rows[i].querySelector('.route-label').textContent.toLowerCase();
+    rows[i].style.display=(!q||lbl.indexOf(q)>=0)?'flex':'none';
+  }
+}
+</script>
+</body>
+</html>
