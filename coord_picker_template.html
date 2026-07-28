@@ -128,23 +128,35 @@ function buildStopLayer(){
     var name=s[0], lng=s[1], lat=s[2], route=s[3], color=s[4];
     allBounds.extend([lat,lng]);
     L.circleMarker([lat,lng],{
-      radius:4, color:color, fillColor:color, fillOpacity:.5, weight:1, opacity:.5
+      radius:6, color:'#fff', fillColor:color, fillOpacity:.85, weight:1.5, opacity:.9
     }).bindPopup('<div style="font-size:11px"><b>'+name+'</b><br>线路: '+route+'<br><span style="color:#999">'+lng+', '+lat+'</span></div>').addTo(stopLayer);
   }
   stopLayer.addTo(map);
 }
 
+// ===== 路线名称→颜色映射 =====
+function buildRouteColorMap(){
+  var map={};
+  for(var i=0;i<ALL_STOPS.length;i++){
+    var s=ALL_STOPS[i];
+    if(!map[s[3]]) map[s[3]]=s[4];
+  }
+  return map;
+}
+
 // ===== 线路图层 =====
 function buildRouteLayer(){
+  var colorMap=buildRouteColorMap();
   routeLayer=L.layerGroup();
   for(var name in ROUTE_POLYLINES){
     var entry=ROUTE_POLYLINES[name];
+    var color=colorMap[name] || '#888';
     if(entry && entry.polyline){
-      L.polyline(entry.polyline,{color:'#666',weight:1,opacity:.25}).addTo(routeLayer);
+      L.polyline(entry.polyline,{color:color,weight:2,opacity:.5}).addTo(routeLayer);
       for(var pi=0;pi<entry.polyline.length;pi+=10) allBounds.extend(entry.polyline[pi]);
     }
     if(entry && entry.to_dest){
-      L.polyline(entry.to_dest,{color:'#666',weight:.5,opacity:.15,dashArray:'4 6'}).addTo(routeLayer);
+      L.polyline(entry.to_dest,{color:color,weight:2,opacity:.4,dashArray:'4 6'}).addTo(routeLayer);
     }
   }
   routeLayer.addTo(map);

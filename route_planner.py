@@ -102,16 +102,30 @@ def get_driving_polyline(origin_lng, origin_lat, dest_lng, dest_lat, waypoints=N
 
 
 def main():
+    # Check for route name filter from CLI
+    filter_name = sys.argv[1] if len(sys.argv) > 1 else None
+
+    # Load existing polylines to preserve unchanged routes
     result = {}
+    if os.path.exists('route_polylines.json'):
+        with open('route_polylines.json', 'r', encoding='utf-8') as f:
+            result = json.load(f)
+
     total_ok = 0
     total_fail = 0
     grand_total = 0
+    updated = 0
 
     all_routes = [('tq', tq), ('jb', jb), ('hq', hq)]
 
     for category, routes in all_routes:
         for r in routes:
             route_name, color, stops = r
+
+            # Filter: match start of route name (e.g. "1号" won't match "11号")
+            if filter_name and not route_name.startswith(filter_name):
+                grand_total += 1
+                continue
 
             # Collect valid coords for this route
             coords = []
@@ -163,15 +177,20 @@ def main():
                     grand_total, 44, category.upper(), route_name))
 
             result[route_name] = entry
+            updated += 1
 
     # Save results
     with open('route_polylines.json', 'w', encoding='utf-8') as f:
         json.dump(result, f, ensure_ascii=False)
 
     print('\n' + '=' * 50)
-    print('Done! %d/%d routes computed successfully.' % (total_ok, grand_total))
+    if filter_name:
+        print('Updated %d route(s) matching "%s".' % (updated, filter_name))
+    else:
+        print('Updated all %d routes.' % updated)
+    print('%d routes computed, %d failed.' % (total_ok, total_fail))
     if total_fail:
-        print('%d routes failed — straight lines will be used as fallback.' % total_fail)
+        print('Failed routes will use straight lines as fallback.')
     print('Output: route_polylines.json')
 
 

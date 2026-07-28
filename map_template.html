@@ -127,7 +127,7 @@ function initMap(){
       // Draw route line: use road polyline if available, fall back to straight lines
       var zw=map.getZoom();
       var routeW=Math.max(1, 3*zw/11);    // scale with zoom
-      var destW=Math.max(0.5, 1.5*zw/11);
+      var destW=Math.max(0.8, 2.5*zw/11);
 
       var roadData = ROUTE_POLYLINES[name];
       var routeLine=null, destLine=null;
