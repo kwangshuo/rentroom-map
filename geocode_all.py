@@ -1,23 +1,27 @@
 """
-V2: 使用高德POI搜索+地理编码混合策略精准定位站点
-- 优先用站名+地址做POI搜索(对小区/学校/商场很准)
-- 回退到地址geocode
-- 对明显的错误坐标(区中心点)标记并重试
+批量地理编码703所班车所有站点（通勤34线+加班7线+红旗3线）
+策略: 高德POI搜索优先 → 地址geocode回退
+用法: set AMAP_WEB_API_KEY=<key> && python geocode_all.py
+输出: stops_geo_v2.json
 """
-import requests
 import json
 import os
 import sys
 import time
 
+try:
+    import requests
+except ImportError:
+    print("Error: requests library not found. pip install requests")
+    sys.exit(1)
+
 KEY = os.environ.get("AMAP_WEB_API_KEY")
 if not KEY:
     print("Error: AMAP_WEB_API_KEY environment variable not set.")
-    print("Usage: set AMAP_WEB_API_KEY=<your_key> && python geocode_v2.py")
+    print("Usage: set AMAP_WEB_API_KEY=<your_key> && python geocode_all.py")
     sys.exit(1)
 
-# ===== 所有站点: [站名, 搜索关键词, 地址] =====
-# 搜索关键词 = 哈尔滨 + 站名/标志性地点
+# ===== 所有站点: [站名, 搜索关键词] =====
 STOPS = [
     # === 通勤1号 ===
     ("小平房", "哈尔滨香坊区成套设备所"),
@@ -96,6 +100,113 @@ STOPS = [
     ("美晨家园", "哈尔滨道里区美晨家园安阳路"),
     ("天鹅湾", "哈尔滨道里区群力天鹅湾上江街"),
     ("十四中", "哈尔滨道里区第十四中学工农大街"),
+
+    # === 通勤15号 ===
+    ("革新街", "哈尔滨南岗区革新街"),
+    ("烟草大厦", "哈尔滨南岗区革新街中山路"),
+    ("医大一院", "哈尔滨南岗区医大一院东大直街"),
+    ("博物馆", "哈尔滨南岗区博物馆少年宫"),
+    ("工大", "哈尔滨南岗区哈尔滨工业大学"),
+    ("康宁桥", "哈尔滨南岗区康宁桥"),
+    ("西雅图水岸", "哈尔滨南岗区西雅图水岸小区"),
+    # === 通勤16号 ===
+    ("经纬三道街", "哈尔滨道里区经纬三道街"),
+    ("安升街", "哈尔滨道里区安升街新阳路"),
+    ("安发桥", "哈尔滨道里区安发桥"),
+    # === 通勤17号 ===
+    ("理工大学", "哈尔滨南岗区哈尔滨理工大学"),
+    ("西典家园", "哈尔滨南岗区西典家园"),
+    ("保利清华颐园", "哈尔滨南岗区保利清华颐园"),
+    ("职工街", "哈尔滨道里区职工街"),
+    ("迎宾小区", "哈尔滨道里区迎宾小区"),
+    # === 通勤18号 ===
+    ("骨伤医院", "哈尔滨南岗区骨伤科医院西大桥"),
+    ("清明四道街", "哈尔滨南岗区清明四道街"),
+    ("商业大学", "哈尔滨道里区商业大学通达街"),
+    # === 通勤19号 ===
+    ("港务局加油站", "哈尔滨道外区港务局加油站"),
+    ("道台府", "哈尔滨道外区道台府八中"),
+    ("道外三道街", "哈尔滨道外区北三道街"),
+    ("九站", "哈尔滨道里区九站公园"),
+    ("盛和世纪", "哈尔滨道里区群力盛和世纪"),
+    ("群力新城", "哈尔滨道里区群力新城小区"),
+    ("贝肯山", "哈尔滨道里区群力贝肯山"),
+    ("保利城3期", "哈尔滨道里区群力保利城三期"),
+    ("星光耀", "哈尔滨道里区群力星光耀"),
+    # === 通勤20号 ===
+    ("107站台", "哈尔滨南岗区征仪路科研路"),
+    ("大众新城", "哈尔滨南岗区大众新城征仪路"),
+    ("大众新城2", "哈尔滨南岗区大众新城保健路"),
+    ("医大二院", "哈尔滨南岗区医大二院学府路"),
+    # === 通勤22号 ===
+    ("松浦大桥", "哈尔滨松北区松浦大桥"),
+    ("九零四所", "哈尔滨松北区中源大道九零四"),
+    ("富力城", "哈尔滨松北区富力城小区"),
+    ("商业大学北区", "哈尔滨松北区商业大学北校区中源大道"),
+    ("奥林小镇", "哈尔滨松北区奥林小镇"),
+    ("莲花渔村", "哈尔滨松北区莲花渔村"),
+    ("民生尚都和园", "哈尔滨道里区民生尚都和园"),
+    # === 通勤23号 ===
+    ("南京路", "哈尔滨呼兰区南京路转盘道"),
+    ("利民大道", "哈尔滨呼兰区利民大道顺迈医院"),
+    ("柒季城", "哈尔滨呼兰区柒季城小区"),
+    ("龙翔路", "哈尔滨松北区龙翔路祥安北大街"),
+    ("龙祥路", "哈尔滨松北区龙祥路"),
+    ("恒源街", "哈尔滨松北区恒源街万达秀园"),
+    ("万达城", "哈尔滨松北区万达城"),
+    ("滨江新城", "哈尔滨松北区滨江新城"),
+    ("宜居家园", "哈尔滨道里区宜居家园四方台大道"),
+    # === 通勤24号 ===
+    ("酒鬼居", "哈尔滨香坊区香滨路"),
+    ("汽车公司", "哈尔滨香坊区香滨路"),
+    ("埃德蒙顿路", "哈尔滨道里区埃德蒙顿路"),
+    ("穆斯林小区", "哈尔滨道里区穆斯林小区机场路"),
+    # === 通勤25号 ===
+    ("翡翠城", "哈尔滨道里区翡翠城工农大街"),
+    ("海富秀园", "哈尔滨道里区群力海富秀园第七大道"),
+    ("海福景园", "哈尔滨道里区群力海富景园四方台大道"),
+    ("四方台大道", "哈尔滨道里区四方台大道恒大帝景"),
+    # === 通勤26号 ===
+    ("安乐街", "哈尔滨香坊区安乐街和平路和兴路交口"),
+    # === 通勤27号 ===
+    ("八区", "哈尔滨道外区八区南极街长青公园"),
+    ("党校（上班单向）", "哈尔滨南岗区延兴路省委党校"),
+    # === 通勤28号 ===
+    ("太平桥", "哈尔滨道外区太平桥地铁口"),
+    ("宣化街", "哈尔滨南岗区宣化街聋哑学校"),
+    ("中海天誉", "哈尔滨道里区中海天誉洪湖路三环路"),
+    # === 通勤29号 ===
+    ("大学城", "哈尔滨平房区大学城民族学院"),
+    ("东方小区", "哈尔滨平房区东方小区"),
+    ("二十四中", "哈尔滨平房区二十四中集智街"),
+    ("东安名苑", "哈尔滨平房区东安名苑友协大街"),
+    ("建安头道街", "哈尔滨平房区建安头道街"),
+    ("太平洋商厦", "哈尔滨平房区太平洋商厦友协大街"),
+    # === 通勤30号 ===
+    ("中海时代名邸", "哈尔滨道里区群力中海时代名邸第六大道"),
+    ("民生尚都福园", "哈尔滨道里区民生尚都福园"),
+    ("熙郡印象", "哈尔滨道里区熙郡印象第六大道"),
+    # === 通勤31号 ===
+    ("万家", "哈尔滨道里区万家电缆厂"),
+    ("大中安屯", "哈尔滨道里区大中安屯"),
+    ("宫家", "哈尔滨道里区新农镇宫家"),
+    ("辛家窝堡", "哈尔滨道里区辛家窝堡"),
+    ("建国村", "哈尔滨道里区建国村"),
+    ("四环桥", "哈尔滨道里区四环桥"),
+    # === 通勤32号 ===
+    ("薛家", "哈尔滨道里区薛家新发邮局"),
+    ("康家", "哈尔滨道里区康家道口"),
+    ("小三姓", "哈尔滨道里区小三姓"),
+    # === 通勤33号 ===
+    ("哈西骏赫城", "哈尔滨南岗区哈西骏赫城"),
+    ("海宁皮革城", "哈尔滨道里区海宁皮革城机场路"),
+    ("小西屯", "哈尔滨道里区小西屯机场路"),
+    ("王家店", "哈尔滨道里区王家店机场路"),
+    # === 通勤34号 ===
+    ("汇龙澜湾九里", "哈尔滨道里区群力汇龙澜湾九里"),
+    ("金地名悦", "哈尔滨道里区群力金地名悦"),
+    ("华润昆仑御", "哈尔滨道里区群力华润昆仑御"),
+
     # === 加班1 ===
     ("南直路成标街", "哈尔滨道外区南直路成标街"),
     ("长江路南直路", "哈尔滨南岗区长江路南直路交口"),
@@ -181,6 +292,7 @@ STOPS = [
     ("肯德基友协", "哈尔滨平房区友协大街新疆大街肯德基"),
     ("东轻家园", "哈尔滨平房区东轻家园"),
     ("糖研", "哈尔滨南岗区糖研三环信息苑"),
+
     # === 红旗1 ===
     ("老所部108", "哈尔滨香坊区红旗大街108号"),
     ("横道街老车队", "哈尔滨香坊区横道街"),
@@ -211,9 +323,11 @@ STOPS = [
     ("远东心血管进乡街", "哈尔滨香坊区远东心血管医院"),
     ("立汇美罗湾进乡", "哈尔滨香坊区立汇美罗湾"),
     ("民生尚都四方台", "哈尔滨道里区民生尚都四方台大道"),
+
     # === 目的地 ===
     ("所部", "哈尔滨洪湖路35号"),
 ]
+
 
 def poi_search(keyword, city="哈尔滨"):
     """高德POI搜索"""
@@ -228,12 +342,13 @@ def poi_search(keyword, city="哈尔滨"):
             poi = data["pois"][0]
             loc = poi["location"].split(",")
             return float(loc[0]), float(loc[1]), poi.get("name", "")
-    except:
+    except Exception:
         pass
     return None
 
+
 def geo_search(address, city="哈尔滨"):
-    """高德地理编码"""
+    """高德地理编码（POI搜索失败时的回退方案）"""
     try:
         resp = requests.get(
             "https://restapi.amap.com/v3/geocode/geo",
@@ -244,60 +359,78 @@ def geo_search(address, city="哈尔滨"):
         if data.get("status") == "1" and data.get("geocodes"):
             loc = data["geocodes"][0]["location"].split(",")
             return float(loc[0]), float(loc[1])
-    except:
+    except Exception:
         pass
     return None
 
-results = {}
-total = len(STOPS)
-print(f"共 {total} 个站点，使用POI搜素+geocode回退")
 
-for i, (name, keyword) in enumerate(STOPS):
-    coord = None
+def main():
+    total = len(STOPS)
+    print(f"共 {total} 个站点，使用POI搜索+geocode回退\n")
 
-    # 1. POI搜索
-    poi_result = poi_search(keyword)
-    if poi_result:
-        lng, lat, poi_name = poi_result
-        coord = (lng, lat)
+    results = {}
+    failed = []
 
-    # 2. 回退到geocode
-    if not coord:
-        addr = keyword  # 直接用搜索词当地址
-        geo_result = geo_search(addr)
-        if geo_result:
-            coord = geo_result
+    for i, (name, keyword) in enumerate(STOPS):
+        coord = None
 
-    if coord:
-        results[name] = {"lng": coord[0], "lat": coord[1]}
-    else:
-        results[name] = None
+        # 1. POI搜索
+        poi_result = poi_search(keyword)
+        if poi_result:
+            lng, lat, poi_name = poi_result
+            coord = (lng, lat)
 
-    if (i+1) % 20 == 0:
-        ok = len([v for v in results.values() if v])
-        print(f"  [{i+1}/{total}] {ok} 成功")
+        # 2. 回退到geocode
+        if not coord:
+            geo_result = geo_search(keyword)
+            if geo_result:
+                coord = geo_result
 
-    time.sleep(0.04)
+        if coord:
+            results[name] = {"lng": coord[0], "lat": coord[1]}
+        else:
+            results[name] = None
+            failed.append(name)
+            print(f"  FAIL: {name}")
 
-ok = len([v for v in results.values() if v])
-print(f"\n完成: {ok}/{total} 成功")
+        if (i + 1) % 50 == 0:
+            ok = len([v for v in results.values() if v])
+            print(f"  [{i+1}/{total}] {ok} 成功")
 
-with open("stops_geo_v2.json", "w", encoding="utf-8") as f:
-    json.dump(results, f, ensure_ascii=False, indent=2)
+        time.sleep(0.04)
 
-# 检测重复坐标(可能是fallback centroid)
-coords_seen = {}
-for name, v in results.items():
-    if v:
-        key = f"{v['lng']:.4f},{v['lat']:.4f}"
-        if key not in coords_seen:
-            coords_seen[key] = []
-        coords_seen[key].append(name)
+    ok = len([v for v in results.values() if v])
+    print(f"\n完成: {ok}/{total} 成功, {len(failed)} 失败")
 
-dupes = {k: v for k, v in coords_seen.items() if len(v) > 2}
-if dupes:
-    print(f"\n⚠️ 检测到 {len(dupes)} 组重复坐标(可能是fallback), 共涉及:")
-    for k, names in dupes.items():
-        print(f"  {k}: {names}")
+    # 保存结果
+    with open("stops_geo_v2.json", "w", encoding="utf-8") as f:
+        json.dump(results, f, ensure_ascii=False, indent=2)
 
-print("\nDone!")
+    print("已保存到 stops_geo_v2.json")
+
+    # 打印失败列表
+    if failed:
+        print("\n⚠️ 失败的站点:")
+        for name in sorted(failed):
+            print(f"  - {name}")
+
+    # 检测重复坐标（可能是fallback centroid）
+    coords_seen = {}
+    for name, v in results.items():
+        if v:
+            key = f"{v['lng']:.4f},{v['lat']:.4f}"
+            if key not in coords_seen:
+                coords_seen[key] = []
+            coords_seen[key].append(name)
+
+    dupes = {k: v for k, v in coords_seen.items() if len(v) > 2}
+    if dupes:
+        print(f"\n⚠️ 检测到 {len(dupes)} 组重复坐标（可能是fallback），共涉及:")
+        for k, names in dupes.items():
+            print(f"  {k}: {names}")
+
+    print("\nDone!")
+
+
+if __name__ == '__main__':
+    main()

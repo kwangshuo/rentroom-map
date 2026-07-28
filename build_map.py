@@ -146,6 +146,44 @@ if __name__ == '__main__':
         f.write(html)
 
     print('Generated 班车路线地图.html')
+
+    # ---- 同时生成 coord_picker.html ----
+    import os.path as _osp
+
+    stops_js = []
+    seen = set()
+    for cat_idx, routes in enumerate([tq, jb, hq]):
+        for r in routes:
+            rname, color, stops = r
+            for s in stops:
+                sname = s[0]
+                coord = c(sname)
+                if coord and sname not in seen:
+                    seen.add(sname)
+                    stops_js.append('["%s",%s,%s,"%s","%s"]' % (
+                        sname, coord[0], coord[1], rname, color))
+
+    picker_stops = "[\n" + ",\n".join(stops_js) + "\n]"
+    picker_dest = '[%s,%s]' % (DEST_LAT, DEST_LNG)
+
+    picker_tpl_path = _osp.join(_osp.dirname(__file__) or '.', 'coord_picker_template.html')
+    if _osp.exists(picker_tpl_path):
+        with open(picker_tpl_path, 'r', encoding='utf-8') as f:
+            tpl = f.read()
+        tpl = tpl.replace('{{PICKER_STOPS}}', picker_stops)
+        tpl = tpl.replace('{{PICKER_DEST}}', picker_dest)
+        # Embed route polylines if available
+        if _osp.exists(rp_path):
+            with open(rp_path, 'r', encoding='utf-8') as f:
+                tpl = tpl.replace('{{PICKER_POLYLINES}}', f.read())
+        else:
+            tpl = tpl.replace('{{PICKER_POLYLINES}}', '{}')
+        with open('coord_picker.html', 'w', encoding='utf-8') as f:
+            f.write(tpl)
+        print('Generated coord_picker.html (%d stops embedded)' % len(stops_js))
+    else:
+        print('  (coord_picker_template.html not found, skipping picker generation)')
+
     print('Destination: %s, %s' % (DEST_LNG, DEST_LAT))
 
     # Count stops
@@ -160,3 +198,5 @@ if __name__ == '__main__':
         print('\n⚠️  Unmatched stops (%d):' % len(_missing))
         for m in sorted(_missing):
             print('  - %s' % m)
+
+

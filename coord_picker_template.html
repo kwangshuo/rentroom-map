@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>坐标拾取器</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Microsoft YaHei','PingFang SC',sans-serif;background:#1a1a2e}
+#container{display:flex;height:100vh}
+#map{flex:1;min-height:500px}
+#panel{width:340px;background:#16213e;color:#eee;overflow-y:auto;padding:14px;font-size:12px}
+#panel h2{color:#e94560;margin-bottom:4px;font-size:16px}
+#panel h3{color:#f0a500;margin:12px 0 4px;font-size:12px}
+.pin-info{background:rgba(255,255,255,0.06);border-radius:6px;padding:10px;margin:6px 0}
+.pin-info .label{color:#999;font-size:10px}
+.pin-info .val{font-size:14px;color:#f0a500;font-weight:bold;word-break:break-all}
+.pin-info .json{font-size:11px;color:#2ecc71;background:rgba(0,0,0,.3);padding:6px 8px;border-radius:4px;margin-top:4px;word-break:break-all;cursor:pointer;user-select:all}
+.pin-info .json:hover{background:rgba(0,0,0,.5)}
+.btn{display:inline-block;padding:6px 12px;margin:3px 5px 3px 0;background:#e94560;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:11px}
+.btn:hover{background:#ff6b81}
+.btn.green{background:#27ae60}
+.btn.green:hover{background:#2ecc71}
+.btn.sm{background:#0f3460;font-size:10px;padding:3px 8px}
+#history{font-size:10px;line-height:1.6}
+#history .item{padding:3px 6px;margin:2px 0;background:rgba(255,255,255,0.04);border-radius:3px;cursor:pointer}
+#history .item:hover{background:rgba(255,255,255,0.1)}
+#history .item .coords{color:#f0a500}
+.copy-toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#27ae60;color:#fff;padding:8px 20px;border-radius:20px;font-size:13px;z-index:9999;opacity:0;transition:opacity .3s}
+.copy-toast.show{opacity:1}
+#route-search{width:100%;padding:5px 8px;margin:4px 0;background:#0f3460;color:#eee;border:1px solid #333;border-radius:4px;font-size:11px}
+.search-result{font-size:10px;max-height:120px;overflow-y:auto;margin-bottom:4px}
+.search-result .sr-item{padding:3px 6px;cursor:pointer;border-radius:2px}
+.search-result .sr-item:hover{background:rgba(255,255,255,0.08)}
+.sr-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:4px}
+</style>
+</head>
+<body>
+<div id="container">
+<div id="map"></div>
+<div id="panel">
+  <h2>📍 坐标拾取器</h2>
+  <div class="subtitle" style="color:#999;font-size:10px;margin-bottom:6px">点击地图取坐标 · 底图显示全部班车站点</div>
+
+  <input type="text" id="route-search" placeholder="🔍 搜索站点名..." oninput="searchStops()">
+  <div class="search-result" id="search-result"></div>
+
+  <div>
+    <button class="btn sm" onclick="toggleStopLayer()">🔄 站点显隐</button>
+    <button class="btn sm" onclick="toggleRouteLayer()">🔄 线路显隐</button>
+    <button class="btn" onclick="clearPin()">🗑 清除标记</button>
+    <button class="btn green" onclick="copyJson()">📋 复制JSON</button>
+    <button class="btn" onclick="copyLngLat()">📋 lng,lat</button>
+  </div>
+
+  <div class="pin-info" id="current" style="display:none">
+    <div class="label">当前选点</div>
+    <div class="val" id="coord-display">—</div>
+    <div class="json" id="json-display" onclick="copyJson()" title="点击复制">—</div>
+  </div>
+
+  <div class="pin-info" id="no-pin">
+    <div class="val" style="color:#666;font-size:12px">👆 点击地图上的位置获取坐标</div>
+  </div>
+
+  <h3>📝 点击记录</h3>
+  <div id="history" style="max-height:250px;overflow-y:auto">
+    <div style="color:#666;font-size:10px">暂无记录</div>
+  </div>
+  <button class="btn sm" onclick="clearHistory()" style="margin-top:4px">清空记录</button>
+</div>
+</div>
+<div class="copy-toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+// ===== 嵌入数据 =====
+var ALL_STOPS = {{PICKER_STOPS}};
+var DEST = {{PICKER_DEST}};
+var ROUTE_POLYLINES = {{PICKER_POLYLINES}};
+
+// ===== 全局状态 =====
+var map, pickerMarker, history=[];
+var stopLayer, routeLayer;
+var stopVisible=true, routeVisible=true;
+var allBounds=L.latLngBounds([DEST]);
+
+// ===== 初始化 =====
+function initMap(){
+  if(typeof L==='undefined'){ setTimeout(initMap,300); return; }
+
+  map=L.map('map',{center:[45.71,126.62],zoom:11});
+
+  L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',
+    {subdomains:['1','2','3','4'],maxZoom:18}).addTo(map);
+
+  // 目的地
+  L.circleMarker(DEST,{radius:8,color:'#fff',fillColor:'#f00',fillOpacity:.9,weight:2})
+    .bindPopup('<b>🏢 所部（洪湖路35号）</b>').addTo(map);
+  allBounds.extend(DEST);
+
+  // 渲染所有站点（半透明参考层）
+  buildStopLayer();
+  buildRouteLayer();
+
+  // 点击地图取坐标
+  map.on('click',function(e){
+    var lng=e.latlng.lng.toFixed(6);
+    var lat=e.latlng.lat.toFixed(6);
+    setPin(parseFloat(lng), parseFloat(lat));
+  });
+
+  // 右键快速复制
+  map.on('contextmenu',function(e){
+    var lng=e.latlng.lng.toFixed(6);
+    var lat=e.latlng.lat.toFixed(6);
+    copyText(lng+','+lat);
+    showToast('已复制: '+lng+', '+lat);
+  });
+}
+
+// ===== 站点图层 =====
+function buildStopLayer(){
+  stopLayer=L.layerGroup();
+  for(var i=0;i<ALL_STOPS.length;i++){
+    var s=ALL_STOPS[i];
+    var name=s[0], lng=s[1], lat=s[2], route=s[3], color=s[4];
+    allBounds.extend([lat,lng]);
+    L.circleMarker([lat,lng],{
+      radius:4, color:color, fillColor:color, fillOpacity:.5, weight:1, opacity:.5
+    }).bindPopup('<div style="font-size:11px"><b>'+name+'</b><br>线路: '+route+'<br><span style="color:#999">'+lng+', '+lat+'</span></div>').addTo(stopLayer);
+  }
+  stopLayer.addTo(map);
+}
+
+// ===== 线路图层 =====
+function buildRouteLayer(){
+  routeLayer=L.layerGroup();
+  for(var name in ROUTE_POLYLINES){
+    var entry=ROUTE_POLYLINES[name];
+    if(entry && entry.polyline){
+      L.polyline(entry.polyline,{color:'#666',weight:1,opacity:.25}).addTo(routeLayer);
+      for(var pi=0;pi<entry.polyline.length;pi+=10) allBounds.extend(entry.polyline[pi]);
+    }
+    if(entry && entry.to_dest){
+      L.polyline(entry.to_dest,{color:'#666',weight:.5,opacity:.15,dashArray:'4 6'}).addTo(routeLayer);
+    }
+  }
+  routeLayer.addTo(map);
+}
+
+function toggleStopLayer(){
+  stopVisible=!stopVisible;
+  if(stopVisible) stopLayer.addTo(map); else map.removeLayer(stopLayer);
+  showToast(stopVisible?'站点已显示':'站点已隐藏');
+}
+
+function toggleRouteLayer(){
+  routeVisible=!routeVisible;
+  if(routeVisible) routeLayer.addTo(map); else map.removeLayer(routeLayer);
+  showToast(routeVisible?'线路已显示':'线路已隐藏');
+}
+
+// ===== 搜索站点 =====
+function searchStops(){
+  var q=document.getElementById('route-search').value.toLowerCase();
+  var el=document.getElementById('search-result');
+  if(!q){ el.innerHTML=''; return; }
+  var matches=[];
+  for(var i=0;i<ALL_STOPS.length;i++){
+    var s=ALL_STOPS[i];
+    if(s[0].toLowerCase().indexOf(q)>=0 || s[3].toLowerCase().indexOf(q)>=0){
+      matches.push(s);
+      if(matches.length>=10) break;
+    }
+  }
+  if(!matches.length){ el.innerHTML='<div style="color:#666;padding:4px">无匹配</div>'; return; }
+  var html='';
+  for(var i=0;i<matches.length;i++){
+    var m=matches[i];
+    html+='<div class="sr-item" onclick="jumpToStop(\''+m[0]+'\','+m[1]+','+m[2]+')">';
+    html+='<span class="sr-dot" style="background:'+m[4]+'"></span>';
+    html+m[0]+' <span style="color:#999">'+m[3]+'</span>';
+    html+='</div>';
+  }
+  el.innerHTML=html;
+}
+
+function jumpToStop(name, lng, lat){
+  map.setView([lat,lng], 16);
+  setPin(lng, lat);
+  document.getElementById('route-search').value=name;
+  document.getElementById('search-result').innerHTML='';
+}
+
+// ===== 坐标拾取 =====
+function setPin(lng, lat){
+  if(pickerMarker) map.removeLayer(pickerMarker);
+  pickerMarker=L.marker([lat,lng],{draggable:true,zIndexOffset:500}).addTo(map);
+  pickerMarker.on('dragend',function(){
+    var p=pickerMarker.getLatLng();
+    updatePanel(p.lng, p.lat);
+  });
+  updatePanel(lng, lat);
+  addToHistory(lng, lat);
+}
+
+function updatePanel(lng, lat){
+  document.getElementById('no-pin').style.display='none';
+  document.getElementById('current').style.display='block';
+  document.getElementById('coord-display').textContent=lng+', '+lat;
+  document.getElementById('json-display').textContent='"站名": { "lng": '+lng+', "lat": '+lat+' }';
+}
+
+function clearPin(){
+  if(pickerMarker) map.removeLayer(pickerMarker);
+  pickerMarker=null;
+  document.getElementById('no-pin').style.display='block';
+  document.getElementById('current').style.display='none';
+}
+
+function copyJson(){
+  var t=document.getElementById('json-display').textContent;
+  copyText(t);
+  showToast('JSON 已复制!');
+}
+
+function copyLngLat(){
+  var t=document.getElementById('coord-display').textContent;
+  copyText(t);
+  showToast('已复制: '+t);
+}
+
+// ===== 历史记录 =====
+function addToHistory(lng, lat){
+  var key=lng.toFixed(6)+','+lat.toFixed(6);
+  for(var i=0;i<history.length;i++){
+    if(history[i].key===key) return;
+  }
+  history.unshift({lng:lng, lat:lat, key:key, time:new Date().toLocaleTimeString()});
+  if(history.length>30) history.pop();
+  renderHistory();
+}
+
+function renderHistory(){
+  var el=document.getElementById('history');
+  if(!history.length){
+    el.innerHTML='<div style="color:#666;font-size:10px">暂无记录</div>';
+    return;
+  }
+  var html='';
+  for(var i=0;i<history.length;i++){
+    var h=history[i];
+    html+='<div class="item" onclick="setPin('+h.lng+','+h.lat+')" title="点击重新定位">';
+    html+='<span class="coords">'+h.lng+', '+h.lat+'</span>';
+    html+=' <span style="color:#666">'+h.time+'</span>';
+    html+='</div>';
+  }
+  el.innerHTML=html;
+}
+
+function clearHistory(){
+  history=[];
+  renderHistory();
+}
+
+// ===== 工具函数 =====
+function copyText(text){
+  var ta=document.createElement('textarea');
+  ta.value=text;ta.style.position='fixed';ta.style.left='-9999px';
+  document.body.appendChild(ta);ta.select();
+  document.execCommand('copy');document.body.removeChild(ta);
+}
+
+function showToast(msg){
+  var t=document.getElementById('toast');
+  t.textContent=msg;
+  t.classList.add('show');
+  setTimeout(function(){t.classList.remove('show');},1500);
+}
+
+document.addEventListener('DOMContentLoaded',function(){
+  if(typeof L!=='undefined') initMap();
+  else setTimeout(function(){if(typeof L!=='undefined')initMap();},5000);
+});
+if(typeof L!=='undefined') initMap();
+</script>
+</body>
+</html>
