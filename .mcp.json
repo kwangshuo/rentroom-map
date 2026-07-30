@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "ark-docs-mcp": {
+      "url": "https://mcp.ark-doc-resources.cn/mcp/"
+    },
+    "volcengine-vision": {
+      "command": "C:/Users/user/miniforge3/envs/py312/python.exe",
+      "args": ["C:/Users/user/.claude/mcp-servers/volcengine_vision.py"]
+    }
+  }
+}
