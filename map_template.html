@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>703所班车路线地图 - 精准坐标版</title>
+<title>班车路线地图</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
   onerror="this.onerror=null;this.href='https://cdn.bootcdn.net/ajax/libs/leaflet/1.9.4/leaflet.min.css'">
 <style>
@@ -47,7 +47,7 @@ details:not([open]) .section-hdr .arrow{transform:rotate(-90deg)}
 <div id="container">
 <div id="map"></div>
 <div id="panel">
-  <h2>🚌 703所班车路线图（全44线）</h2>
+  <h2>🚌 班车路线图（全44线）</h2>
   <div class="subtitle">高德道路路线 · 目的地: 洪湖路35号 · 职工通勤34线+加班7+红旗3</div>
   <div class="stats">📊 <span>34条</span>通勤+7加班+3红旗=<span>44条</span>线路 · <span>275</span>站点 · 高德精准坐标+道路路线</div>
   <div>
@@ -107,7 +107,7 @@ function initMap(){
 
   // 目的地
   L.circleMarker(DEST,{radius:11,color:'#fff',fillColor:'#f00',fillOpacity:.9,weight:3})
-    .bindPopup('<div class="info-popup"><b>🏢 703所部</b><br>洪湖路35号</div>').addTo(map);
+    .bindPopup('<div class="info-popup"><b>🏢 部</b><br>洪湖路35号</div>').addTo(map);
 
   var allRoutes=[];
 
