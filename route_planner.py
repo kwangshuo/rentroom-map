@@ -138,9 +138,15 @@ def main():
             entry = {'polyline': None, 'to_dest': None}
 
             if len(coords) >= 2:
-                origin = coords[0]
-                destination = coords[-1]
-                waypoints = coords[1:-1] if len(coords) > 2 else None
+                if category in ('jb', 'hq'):
+                    # 加班/红旗线路：由所部开往终点（反向）
+                    origin = (DEST['lng'], DEST['lat'])
+                    destination = coords[0]
+                    waypoints = list(reversed(coords[1:])) if len(coords) > 1 else None
+                else:
+                    origin = coords[0]
+                    destination = coords[-1]
+                    waypoints = coords[1:-1] if len(coords) > 2 else None
 
                 wp_info = (' +%d wp' % len(waypoints)) if waypoints else ''
                 print('[%d/%d] %s %s (%d stops%s)...' % (
@@ -160,16 +166,19 @@ def main():
                     total_fail += 1
                     print('    route: FAILED (will use straight lines)')
 
-                # Last stop -> destination
-                dest_poly = get_driving_polyline(
-                    destination[0], destination[1],
-                    DEST['lng'], DEST['lat']
-                )
-                if dest_poly:
-                    entry['to_dest'] = dest_poly
-                    print('    to_dest: %d points OK' % len(dest_poly))
+                # Last stop -> destination (加班/红旗线反向，起点已是所部，无需此连线)
+                if category in ('jb', 'hq'):
+                    entry['to_dest'] = None
                 else:
-                    print('    to_dest: FAILED')
+                    dest_poly = get_driving_polyline(
+                        destination[0], destination[1],
+                        DEST['lng'], DEST['lat']
+                    )
+                    if dest_poly:
+                        entry['to_dest'] = dest_poly
+                        print('    to_dest: %d points OK' % len(dest_poly))
+                    else:
+                        print('    to_dest: FAILED')
 
                 time.sleep(0.25)  # Rate limiting (slower to avoid QPS errors)
             else:
