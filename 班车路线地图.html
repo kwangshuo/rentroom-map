@@ -170,8 +170,13 @@ function initMap(){
         var lng=s[1], lat=s[2];
         routeBounds.extend([lat,lng]);
         allBounds.extend([lat,lng]);
-        L.circleMarker([lat,lng],{radius:5,color:'#fff',fillColor:color,fillOpacity:.9,weight:1.5})
-          .bindPopup('<div class="info-popup"><b>'+name+'</b><br>📍 '+s[0]+'<br>🕐 '+s[3]+' · 第'+(i+1)+'站</div>').addTo(g);
+        var popupHtml='<div class="info-popup"><b>'+name+'</b><br>📍 '+s[0]+'<br>🕐 '+s[3]+' · 第'+(i+1)+'站</div>';
+        // 大号透明点击区域，便于点中
+        L.circleMarker([lat,lng],{radius:12,stroke:false,fillOpacity:0,opacity:0,interactive:true})
+          .bindPopup(popupHtml).addTo(g);
+        // 可见的小圆点
+        L.circleMarker([lat,lng],{radius:6,color:'#fff',fillColor:color,fillOpacity:.9,weight:1.5})
+          .addTo(g);
       });
 
       // Draw route line: use road polyline if available, fall back to straight lines
