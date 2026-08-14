@@ -53,9 +53,10 @@ details:not([open]) .section-hdr .arrow{transform:rotate(-90deg)}
   <div>
     <button class="btn" onclick="showAll()">✅ 全部显示</button>
     <button class="btn sm" onclick="hideAll()">❌ 全部隐藏</button>
+    <button class="btn sm" onclick="toggleJB()">🔴 加班显隐</button>
     <button class="btn sm" onclick="map.fitBounds(allBounds)">🔍 全图</button>
     <button class="btn sm" onclick="fitBest()">📍 推荐区</button>
-    <div id="route-counter">👁 显示: <span id="visible-count">44</span>/44 条</div>
+    <div id="route-counter">👁 显示: <span id="visible-count">41</span>/44 条</div>
   </div>
   <input type="text" id="search-box" placeholder="🔍 搜索线路/站点..." style="width:100%;padding:5px 8px;margin:6px 0;background:#0f3460;color:#eee;border:1px solid #333;border-radius:4px;font-size:11px" oninput="filterRoutes()">
   <h3>🏢 目的地</h3>
@@ -65,7 +66,7 @@ details:not([open]) .section-hdr .arrow{transform:rotate(-90deg)}
     <div class="section-body" id="tq-body">{{TQ_SIDEBAR}}</div>
   </details>
   <details open>
-    <summary class="section-hdr"><span class="arrow">▼</span> 🟡 周六加班（7条）</summary>
+    <summary class="section-hdr"><span class="arrow">▼</span> 🔴 周六加班（7条）</summary>
     <div class="section-body" id="jb-body">{{JB_SIDEBAR}}</div>
   </details>
   <details open>
@@ -158,9 +159,10 @@ function initMap(){
         if(destLine) _allLines.push({line:destLine, baseW:1.5});
       }
 
-      g.addTo(map);
-      routeLayers[id]={layer:g, name:name, color:color, cat:si===0?'tq':si===1?'jb':'hq'};
-      allRoutes.push({id:id, name:name, color:color, group:si===0?'tq':si===1?'jb':'hq'});
+      var cat=si===0?'tq':si===1?'jb':'hq';
+      if (cat !== 'hq') g.addTo(map);  // 红旗线默认不显示
+      routeLayers[id]={layer:g, name:name, color:color, cat:cat};
+      allRoutes.push({id:id, name:name, color:color, group:cat});
     });
   });
 
@@ -178,6 +180,7 @@ function initMap(){
   });
 
   bindSidebarEvents();
+  updateCounter();
 
   // 推荐租房标注
   [{name:'🥇 群力第五大道',lat:45.740,lng:126.565,desc:'12号通勤·06:55~07:08<br>恒祥空间¥1,650~2,100<br>银泰城+王府井·健身房密集',color:'#f33'},
@@ -193,7 +196,7 @@ function initMap(){
   L.control({position:'bottomleft'}).onAdd=function(){
     var d=L.DomUtil.create('div','');
     d.style.cssText='background:rgba(0,0,0,0.75);color:#fff;padding:8px 12px;border-radius:6px;font-size:10px;line-height:1.8;';
-    d.innerHTML='<b>图例</b><br><span style="color:#2ecc71;">━</span> 通勤(每日34条)<br><span style="color:#f39c12;">━</span> 加班(周六7条)<br><span style="color:#3498db;">━</span> 红旗(周五/日3条)<br><span style="color:#f00;">●</span> 所部<br><span style="color:#f33;">🏘️</span> 推荐租房区';
+    d.innerHTML='<b>图例</b><br><span style="color:#2ecc71;">━</span> 通勤(每日34条)<br><span style="color:#e74c3c;">━</span> 加班(周六7条)<br><span style="color:#3498db;">━</span> 红旗(周五/日3条)<br><span style="color:#f00;">●</span> 所部<br><span style="color:#f33;">🏘️</span> 推荐租房区';
     return d;
   }.addTo(map);
 }
@@ -247,6 +250,20 @@ if(typeof L!=='undefined') initMap();
 
 function showAll(){for(var k in routeLayers)routeLayers[k].layer.addTo(map);var rows=document.querySelectorAll('.route-row');for(var i=0;i<rows.length;i++){rows[i].querySelector('input').checked=true;rows[i].classList.remove('off');}updateCounter();}
 function hideAll(){for(var k in routeLayers)map.removeLayer(routeLayers[k].layer);var rows=document.querySelectorAll('.route-row');for(var i=0;i<rows.length;i++){rows[i].querySelector('input').checked=false;rows[i].classList.add('off');}updateCounter();}
+var jbVisible = true;  // 加班线初始显示状态
+
+function toggleJB(){
+  jbVisible = !jbVisible;
+  for(var k in routeLayers){
+    if(routeLayers[k].cat==='jb'){
+      var rl=routeLayers[k];
+      if(jbVisible) rl.layer.addTo(map); else map.removeLayer(rl.layer);
+      var row=document.querySelector('.route-row[data-rid="'+k+'"]');
+      if(row){row.classList.toggle('off',!jbVisible);var cb=row.querySelector('input');if(cb)cb.checked=jbVisible;}
+    }
+  }
+  updateCounter();
+}
 function fitBest(){map.fitBounds([[45.69,126.54],[45.75,126.60]],{padding:[20,20]});}
 function filterRoutes(){
   var q=document.getElementById('search-box').value.toLowerCase();

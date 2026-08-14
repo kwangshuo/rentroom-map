@@ -15,7 +15,7 @@ def c(name):
     return None
 
 tqC = ['#2ecc71','#27ae60','#1abc9c','#16a085','#2ecc71','#27ae60','#1abc9c','#16a085','#2ecc71','#27ae60','#1abc9c','#16a085','#2ecc71','#27ae60','#1abc9c','#16a085','#2ecc71','#27ae60','#1abc9c','#16a085','#2ecc71','#27ae60','#1abc9c','#16a085','#2ecc71','#27ae60','#1abc9c','#16a085','#2ecc71','#27ae60','#1abc9c','#16a085','#2ecc71','#27ae60']
-jbC = ['#f39c12','#e67e22','#f1c40f','#d4ac0d','#f39c12','#e67e22','#f1c40f']
+jbC = ['#e74c3c','#c0392b','#e91e63','#ad1457','#e74c3c','#c0392b','#e91e63']
 hqC = ['#3498db','#2980b9','#2471a3']
 
 tq = [
@@ -85,13 +85,15 @@ def build_sidebar_html():
                 continue
             rid = 'r_%d' % global_idx
             global_idx += 1
+            # 红旗线默认不勾选（地图上默认不显示）
+            checked = '' if div_id == 'hq-body' else ' checked'
             rows.append(
                 '<div class="route-row" data-rid="%s" onclick="rowToggle(this)">'
-                '<input type="checkbox" checked onclick="event.stopPropagation();rowCheck(this)">'
+                '<input type="checkbox"%s onclick="event.stopPropagation();rowCheck(this)">'
                 '<span class="route-dot" style="background:%s"></span>'
                 '<span class="route-label">%s</span>'
                 '<button class="solo-btn" onclick="event.stopPropagation();rowSolo(this)" title="只看这条">👁</button>'
-                '</div>' % (rid, color, name)
+                '</div>' % (rid, checked, color, name)
             )
         html_parts.append(''.join(rows))
     return tuple(html_parts)
