@@ -28,13 +28,13 @@ body{font-family:'Microsoft YaHei','PingFang SC',sans-serif;background:#1a1a2e}
 details[open] .section-hdr .arrow{transform:rotate(0deg)}
 details:not([open]) .section-hdr .arrow{transform:rotate(-90deg)}
 .section-body{overflow:hidden}
-.route-row{margin:1px 0;font-size:10px;display:flex;align-items:center;padding:2px 5px;border-radius:3px;cursor:pointer;transition:background .15s}
+.route-row{margin:1px 0;font-size:12px;display:flex;align-items:center;padding:3px 5px;border-radius:3px;cursor:pointer;transition:background .15s}
 .route-row:hover{background:rgba(255,255,255,0.08)}
 .route-row.off{opacity:.35}
 .route-row input{margin-right:5px;flex-shrink:0;transform:scale(.85);cursor:pointer}
 .route-dot{width:8px;height:8px;border-radius:50%;margin:0 5px;flex-shrink:0;border:1px solid rgba(255,255,255,.4)}
 .route-label{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.solo-btn{background:none;border:1px solid rgba(255,255,255,.15);color:#999;font-size:9px;padding:0 4px;border-radius:2px;cursor:pointer;flex-shrink:0;margin-left:3px;line-height:15px}
+.solo-btn{background:none;border:1px solid rgba(255,255,255,.25);color:#ccc;font-size:14px;padding:3px 8px;border-radius:3px;cursor:pointer;flex-shrink:0;margin-left:4px;line-height:18px}
 .solo-btn:hover{color:#fff;border-color:#e94560;background:rgba(233,69,96,.2)}
 #route-counter{font-size:10px;color:#999;margin:2px 0}
 .rental-tag{background:#e94560;color:#fff;padding:2px 7px;border-radius:3px;font-size:10px;white-space:nowrap;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35)}
@@ -62,7 +62,7 @@ details:not([open]) .section-hdr .arrow{transform:rotate(-90deg)}
   <h3>🏢 目的地</h3>
   <div style="font-size:11px;padding:2px 6px;">🔴 <b>所部（洪湖路35号）</b></div>
   <details open>
-    <summary class="section-hdr"><span class="arrow">▼</span> 🟢 职工通勤（34条·每日）</summary>
+    <summary class="section-hdr"><span class="arrow">▼</span> 🟣 职工通勤（34条·每日）</summary>
     <div class="section-body" id="tq-body">{{TQ_SIDEBAR}}</div>
   </details>
   <details open>
@@ -117,9 +117,11 @@ function initMap(){
       var name=d[0], color=d[1], stops=d[2];
       var id='r_'+allRoutes.length;
       var g=L.layerGroup();
+      var routeBounds=L.latLngBounds([]);  // 记录该线路的范围，用于「只看」缩放
 
       stops.forEach(function(s,i){
         var lng=s[1], lat=s[2];
+        routeBounds.extend([lat,lng]);
         allBounds.extend([lat,lng]);
         L.circleMarker([lat,lng],{radius:5,color:'#fff',fillColor:color,fillOpacity:.9,weight:1.5})
           .bindPopup('<div class="info-popup"><b>'+name+'</b><br>📍 '+s[0]+'<br>🕐 '+s[3]+' · 第'+(i+1)+'站</div>').addTo(g);
@@ -133,7 +135,7 @@ function initMap(){
       var roadData = ROUTE_POLYLINES[name];
       var routeLine=null, destLine=null;
       if (roadData && roadData.polyline && roadData.polyline.length > 0) {
-        routeLine=L.polyline(roadData.polyline, {color:color,weight:routeW,opacity:.6}).addTo(g);
+        routeLine=L.polyline(roadData.polyline, {color:color,weight:routeW,opacity:.9}).addTo(g);
         var step = Math.max(1, Math.floor(roadData.polyline.length / 20));
         for (var pi = 0; pi < roadData.polyline.length; pi += step) {
           allBounds.extend(roadData.polyline[pi]);
@@ -142,7 +144,7 @@ function initMap(){
         var segs=[];
         for (var i = 0; i < stops.length - 1; i++) {
           var sl=L.polyline([[stops[i][2],stops[i][1]],[stops[i+1][2],stops[i+1][1]]],
-            {color:color,weight:routeW,opacity:.55,dashArray:'6 4'}).addTo(g);
+            {color:color,weight:routeW,opacity:.85,dashArray:'6 4'}).addTo(g);
           _allLines.push({line:sl, baseW:3});
         }
       }
@@ -161,7 +163,7 @@ function initMap(){
 
       var cat=si===0?'tq':si===1?'jb':'hq';
       if (cat !== 'hq') g.addTo(map);  // 红旗线默认不显示
-      routeLayers[id]={layer:g, name:name, color:color, cat:cat};
+      routeLayers[id]={layer:g, name:name, color:color, cat:cat, bounds:routeBounds};
       allRoutes.push({id:id, name:name, color:color, group:cat});
     });
   });
@@ -196,7 +198,7 @@ function initMap(){
   L.control({position:'bottomleft'}).onAdd=function(){
     var d=L.DomUtil.create('div','');
     d.style.cssText='background:rgba(0,0,0,0.75);color:#fff;padding:8px 12px;border-radius:6px;font-size:10px;line-height:1.8;';
-    d.innerHTML='<b>图例</b><br><span style="color:#2ecc71;">━</span> 通勤(每日34条)<br><span style="color:#e74c3c;">━</span> 加班(周六7条)<br><span style="color:#3498db;">━</span> 红旗(周五/日3条)<br><span style="color:#f00;">●</span> 所部<br><span style="color:#f33;">🏘️</span> 推荐租房区';
+    d.innerHTML='<b>图例</b><br><span style="color:#8e44ad;">━</span> 通勤(每日34条)<br><span style="color:#e74c3c;">━</span> 加班(周六7条)<br><span style="color:#3498db;">━</span> 红旗(周五/日3条)<br><span style="color:#f00;">●</span> 所部<br><span style="color:#f33;">🏘️</span> 推荐租房区';
     return d;
   }.addTo(map);
 }
@@ -220,6 +222,11 @@ function toggleRouteById(id, show){
 
 function soloRoute(id){
   for(var k in routeLayers) toggleRouteById(k, k===id);
+  // 自动缩放至该线路范围，便于查看
+  var rl=routeLayers[id];
+  if(rl && rl.bounds && rl.bounds.isValid()){
+    map.fitBounds(rl.bounds, {padding:[60,60], maxZoom:16});
+  }
 }
 
 function rowToggle(row){
