@@ -113,3 +113,5 @@ if __name__ == '__main__':
                 if json_fmt:
                     print(f'   JSON: "{poi["name"]}": {{ "lng": {lng:.6f}, "lat": {lat:.6f} }}')
                 print()
+
+

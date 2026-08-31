@@ -147,7 +147,11 @@ if __name__ == '__main__':
     with open('班车路线地图.html', 'w', encoding='utf-8') as f:
         f.write(html)
 
-    print('Generated 班车路线地图.html')
+    # 同步生成 index.html（GitHub Pages 根目录入口），保持一致
+    with open('index.html', 'w', encoding='utf-8') as f:
+        f.write(html)
+
+    print('Generated 班车路线地图.html + index.html')
 
     # ---- 同时生成 coord_picker.html ----
     import os.path as _osp
