@@ -54,6 +54,7 @@ details:not([open]) .section-hdr .arrow{transform:rotate(-90deg)}
     <button class="btn" onclick="showAll()">✅ 全部显示</button>
     <button class="btn sm" onclick="hideAll()">❌ 全部隐藏</button>
     <button class="btn sm" onclick="toggleJB()">🔴 加班显隐</button>
+    <button class="btn sm" onclick="toggleHQ()">🔵 红旗显隐</button>
     <button class="btn sm" onclick="map.fitBounds(allBounds)">🔍 全图</button>
     <button class="btn sm" onclick="fitBest()">📍 推荐区</button>
     <div id="route-counter">👁 显示: <span id="visible-count">41</span>/44 条</div>
@@ -67,7 +68,7 @@ details:not([open]) .section-hdr .arrow{transform:rotate(-90deg)}
   </details>
   <details open>
     <summary class="section-hdr"><span class="arrow">▼</span> 🔴 周六加班（7条）</summary>
-    <div class="section-body" id="jb-body"><div class="route-row" data-rid="r_34" onclick="rowToggle(this)"><input type="checkbox" checked onclick="event.stopPropagation();rowCheck(this)"><span class="route-dot" style="background:#e74c3c"></span><span class="route-label">加班1·南直路→道外→群力</span><button class="solo-btn" onclick="event.stopPropagation();rowSolo(this)" title="只看这条">👁</button></div><div class="route-row" data-rid="r_35" onclick="rowToggle(this)"><input type="checkbox" checked onclick="event.stopPropagation();rowCheck(this)"><span class="route-dot" style="background:#c0392b"></span><span class="route-label">加班2·嵩山小区→新三中</span><button class="solo-btn" onclick="event.stopPropagation();rowSolo(this)" title="只看这条">👁</button></div><div class="route-row" data-rid="r_36" onclick="rowToggle(this)"><input type="checkbox" checked onclick="event.stopPropagation();rowCheck(this)"><span class="route-dot" style="background:#e91e63"></span><span class="route-label">加班3·果园街→哈西→王岗</span><button class="solo-btn" onclick="event.stopPropagation();rowSolo(this)" title="只看这条">👁</button></div><div class="route-row" data-rid="r_37" onclick="rowToggle(this)"><input type="checkbox" checked onclick="event.stopPropagation();rowCheck(this)"><span class="route-dot" style="background:#ad1457"></span><span class="route-label">加班4·立汇→鲁商</span><button class="solo-btn" onclick="event.stopPropagation();rowSolo(this)" title="只看这条">👁</button></div><div class="route-row" data-rid="r_38" onclick="rowToggle(this)"><input type="checkbox" checked onclick="event.stopPropagation();rowCheck(this)"><span class="route-dot" style="background:#e74c3c"></span><span class="route-label">加班5·老所部→群力家园</span><button class="solo-btn" onclick="event.stopPropagation();rowSolo(this)" title="只看这条">👁</button></div><div class="route-row" data-rid="r_39" onclick="rowToggle(this)"><input type="checkbox" checked onclick="event.stopPropagation();rowCheck(this)"><span class="route-dot" style="background:#c0392b"></span><span class="route-label">加班6·松北区世茂大道</span><button class="solo-btn" onclick="event.stopPropagation();rowSolo(this)" title="只看这条">👁</button></div><div class="route-row" data-rid="r_40" onclick="rowToggle(this)"><input type="checkbox" checked onclick="event.stopPropagation();rowCheck(this)"><span class="route-dot" style="background:#e91e63"></span><span class="route-label">加班7·平房区→糖研</span><button class="solo-btn" onclick="event.stopPropagation();rowSolo(this)" title="只看这条">👁</button></div></div>
+    <div class="section-body" id="jb-body"><div class="route-row" data-rid="r_34" onclick="rowToggle(this)"><input type="checkbox" onclick="event.stopPropagation();rowCheck(this)"><span class="route-dot" style="background:#e74c3c"></span><span class="route-label">加班1·南直路→道外→群力</span><button class="solo-btn" onclick="event.stopPropagation();rowSolo(this)" title="只看这条">👁</button></div><div class="route-row" data-rid="r_35" onclick="rowToggle(this)"><input type="checkbox" onclick="event.stopPropagation();rowCheck(this)"><span class="route-dot" style="background:#c0392b"></span><span class="route-label">加班2·嵩山小区→新三中</span><button class="solo-btn" onclick="event.stopPropagation();rowSolo(this)" title="只看这条">👁</button></div><div class="route-row" data-rid="r_36" onclick="rowToggle(this)"><input type="checkbox" onclick="event.stopPropagation();rowCheck(this)"><span class="route-dot" style="background:#e91e63"></span><span class="route-label">加班3·果园街→哈西→王岗</span><button class="solo-btn" onclick="event.stopPropagation();rowSolo(this)" title="只看这条">👁</button></div><div class="route-row" data-rid="r_37" onclick="rowToggle(this)"><input type="checkbox" onclick="event.stopPropagation();rowCheck(this)"><span class="route-dot" style="background:#ad1457"></span><span class="route-label">加班4·立汇→鲁商</span><button class="solo-btn" onclick="event.stopPropagation();rowSolo(this)" title="只看这条">👁</button></div><div class="route-row" data-rid="r_38" onclick="rowToggle(this)"><input type="checkbox" onclick="event.stopPropagation();rowCheck(this)"><span class="route-dot" style="background:#e74c3c"></span><span class="route-label">加班5·老所部→群力家园</span><button class="solo-btn" onclick="event.stopPropagation();rowSolo(this)" title="只看这条">👁</button></div><div class="route-row" data-rid="r_39" onclick="rowToggle(this)"><input type="checkbox" onclick="event.stopPropagation();rowCheck(this)"><span class="route-dot" style="background:#c0392b"></span><span class="route-label">加班6·松北区世茂大道</span><button class="solo-btn" onclick="event.stopPropagation();rowSolo(this)" title="只看这条">👁</button></div><div class="route-row" data-rid="r_40" onclick="rowToggle(this)"><input type="checkbox" onclick="event.stopPropagation();rowCheck(this)"><span class="route-dot" style="background:#e91e63"></span><span class="route-label">加班7·平房区→糖研</span><button class="solo-btn" onclick="event.stopPropagation();rowSolo(this)" title="只看这条">👁</button></div></div>
   </details>
   <details open>
     <summary class="section-hdr"><span class="arrow">▼</span> 🔵 红旗大街（3条·周五/日）</summary>
@@ -214,7 +215,7 @@ function initMap(){
       }
 
       var cat=si===0?'tq':si===1?'jb':'hq';
-      if (cat !== 'hq') g.addTo(map);  // 红旗线默认不显示
+      if (cat === 'tq') g.addTo(map);  // 默认只显示通勤，加班/红旗隐藏
       routeLayers[id]={layer:g, name:name, color:color, cat:cat, bounds:routeBounds};
       allRoutes.push({id:id, name:name, color:color, group:cat});
     });
@@ -309,7 +310,7 @@ if(typeof L!=='undefined') initMap();
 
 function showAll(){for(var k in routeLayers)routeLayers[k].layer.addTo(map);var rows=document.querySelectorAll('.route-row');for(var i=0;i<rows.length;i++){rows[i].querySelector('input').checked=true;rows[i].classList.remove('off');}updateCounter();}
 function hideAll(){for(var k in routeLayers)map.removeLayer(routeLayers[k].layer);var rows=document.querySelectorAll('.route-row');for(var i=0;i<rows.length;i++){rows[i].querySelector('input').checked=false;rows[i].classList.add('off');}updateCounter();}
-var jbVisible = true;  // 加班线初始显示状态
+var jbVisible = false;  // 加班线默认隐藏
 
 function toggleJB(){
   jbVisible = !jbVisible;
@@ -319,6 +320,21 @@ function toggleJB(){
       if(jbVisible) rl.layer.addTo(map); else map.removeLayer(rl.layer);
       var row=document.querySelector('.route-row[data-rid="'+k+'"]');
       if(row){row.classList.toggle('off',!jbVisible);var cb=row.querySelector('input');if(cb)cb.checked=jbVisible;}
+    }
+  }
+  updateCounter();
+}
+
+var hqVisible = false;  // 红旗线默认隐藏
+
+function toggleHQ(){
+  hqVisible = !hqVisible;
+  for(var k in routeLayers){
+    if(routeLayers[k].cat==='hq'){
+      var rl=routeLayers[k];
+      if(hqVisible) rl.layer.addTo(map); else map.removeLayer(rl.layer);
+      var row=document.querySelector('.route-row[data-rid="'+k+'"]');
+      if(row){row.classList.toggle('off',!hqVisible);var cb=row.querySelector('input');if(cb)cb.checked=hqVisible;}
     }
   }
   updateCounter();

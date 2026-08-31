@@ -85,8 +85,8 @@ def build_sidebar_html():
                 continue
             rid = 'r_%d' % global_idx
             global_idx += 1
-            # 红旗线默认不勾选（地图上默认不显示）
-            checked = '' if div_id == 'hq-body' else ' checked'
+            # 加班/红旗线默认不勾选（地图上默认不显示，仅通勤勾选）
+            checked = '' if div_id in ('jb-body', 'hq-body') else ' checked'
             rows.append(
                 '<div class="route-row" data-rid="%s" onclick="rowToggle(this)">'
                 '<input type="checkbox"%s onclick="event.stopPropagation();rowCheck(this)">'
