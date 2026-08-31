@@ -210,6 +210,8 @@ function gotoPlace(lng,lat,label){
 
 function initMap(){
   if(typeof L==='undefined'){ setTimeout(initMap,300); return; }
+  if(window.__mapInitialized) return; // 防止地图被重复初始化
+  window.__mapInitialized = true;
 
   map=L.map('map',{center:[45.71,126.62],zoom:11});
 
@@ -286,7 +288,7 @@ function initMap(){
   });
 
   allBounds.extend(DEST);
-  map.fitBounds(allBounds.padding([30,30]));
+  map.fitBounds(allBounds, {padding:[30,30]});
 
   // Zoom-based line weight scaling
   map.on('zoomend',function(){
@@ -369,9 +371,8 @@ function bindSidebarEvents(){
 document.addEventListener('DOMContentLoaded',function(){
   if(typeof L!=='undefined') initMap();
   else setTimeout(function(){if(typeof L!=='undefined')initMap();else alert('Leaflet加载失败，请开启VPN后刷新');},5000);
-  loadAmapJS(); // 异步加载高德 JS API（未填 key 则跳过）
+  loadAmapJS(); // 异步加载高德 JS API（未填 key 则跳过）（initMap 有 __mapInitialized 守卫，重复调用无害）
 });
-if(typeof L!=='undefined') initMap();
 
 function showAll(){for(var k in routeLayers)routeLayers[k].layer.addTo(map);var rows=document.querySelectorAll('.route-row');for(var i=0;i<rows.length;i++){rows[i].querySelector('input').checked=true;rows[i].classList.remove('off');}updateCounter();}
 function hideAll(){for(var k in routeLayers)map.removeLayer(routeLayers[k].layer);var rows=document.querySelectorAll('.route-row');for(var i=0;i<rows.length;i++){rows[i].querySelector('input').checked=false;rows[i].classList.add('off');}updateCounter();}
