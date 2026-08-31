@@ -59,6 +59,12 @@ details:not([open]) .section-hdr .arrow{transform:rotate(-90deg)}
     <button class="btn sm" onclick="fitBest()">📍 推荐区</button>
     <div id="route-counter">👁 显示: <span id="visible-count">41</span>/44 条</div>
   </div>
+  <div style="display:flex;gap:4px;margin:6px 0">
+    <input type="text" id="place-search" spellcheck="false" placeholder="📍 搜哈尔滨位置（如:红旗大街 / 群力第五大道 / 万达广场）"
+      style="flex:1;padding:5px 8px;background:#0f3460;color:#eee;border:1px solid #333;border-radius:4px;font-size:11px"
+      onkeydown="if(event.key==='Enter')searchPlace()">
+    <button class="btn sm" onclick="searchPlace()" title="搜索并放大">🔍 搜</button>
+  </div>
   <input type="text" id="search-box" placeholder="🔍 搜索线路/站点..." style="width:100%;padding:5px 8px;margin:6px 0;background:#0f3460;color:#eee;border:1px solid #333;border-radius:4px;font-size:11px" oninput="filterRoutes()">
   <h3>🏢 目的地</h3>
   <div style="font-size:11px;padding:2px 6px;">🔴 <b>所部（洪湖路35号）</b></div>
@@ -96,6 +102,61 @@ var TQ={{TQ_DATA}};
 var JB={{JB_DATA}};
 var HQ={{HQ_DATA}};
 var ROUTE_POLYLINES={{ROUTE_POLYLINES}};
+
+/* ================= 地点搜索（高德 JS API）=================
+ * 使用步骤（需两步准备才能生效）：
+ *  1) 到 https://console.amap.com/ → 应用管理 → 新建 Web服务(JS API) 类型的 key
+ *  2) 在该 key 的「请求白名单」里加入本站域名，例如：
+ *       https://kwangshuo.github.io        （线上 Pages）
+ *       http://localhost:8000               （本地测试，需 python -m http.server 跑，勿用 file://）
+ *  把下面这个 key 换成你的，然后重新 build_map.py 即可。
+ */
+var AMAP_JS_KEY = "「把你的高德JS_API_key填到这里（替换整段引号内容）」";
+var searchMarker = null;
+
+function loadAmapJS(){
+  if(!AMAP_JS_KEY || AMAP_JS_KEY.indexOf('填到这里')>=0) return; // 未填 key 则不加载
+  if(window.__amapJsLoaded) return;
+  var s=document.createElement('script');
+  s.src='https://webapi.amap.com/maps?v=1.4.15&key='+encodeURIComponent(AMAP_JS_KEY)+'&plugin=AMap.Geocoder,AMap.PlaceSearch';
+  s.onload=function(){ window.__amapJsLoaded=true; };
+  document.head.appendChild(s);
+}
+
+function searchPlace(){
+  var inp=document.getElementById('place-search'); if(!inp) return;
+  var q=inp.value.trim(); if(!q) return;
+  if(!window.AMap || !window.AMap.Geocoder){
+    alert('高德JS检索未就绪：请在 map_template.html 顶部 AMAP_JS_KEY 填入你的高德 JS API key，并在高德控制台把本页域名加入请求白名单。');
+    return;
+  }
+  AMap.plugin(['AMap.Geocoder','AMap.PlaceSearch'],function(){
+    var geocoder=new AMap.Geocoder({city:'哈尔滨'});
+    geocoder.getLocation(q,function(status,result){
+      if(status==='complete' && result.geocodes && result.geocodes.length){
+        var g=result.geocodes[0];
+        gotoPlace(g.location.lng, g.location.lat, g.formattedAddress);
+      } else {
+        var ps=new AMap.PlaceSearch({city:'哈尔滨', pageSize:1});
+        ps.search(q,function(s,res){
+          if(s==='complete' && res.poiList && res.poiList.pois && res.poiList.pois.length){
+            var p=res.poiList.pois[0];
+            gotoPlace(p.location.lng, p.location.lat, p.name);
+          } else {
+            alert('未找到「'+q+'」，换个关键词试试（限哈尔滨）。');
+          }
+        });
+      }
+    });
+  });
+}
+
+function gotoPlace(lng,lat,label){
+  if(searchMarker) searchMarker.remove();
+  searchMarker=L.marker([lat,lng]).addTo(map)
+    .bindPopup('<div class="info-popup"><b>📍 '+label+'</b></div>').openPopup();
+  map.flyTo([lat,lng], 15, {duration:0.8}); // 放大到该位置附近
+}
 
 function initMap(){
   if(typeof L==='undefined'){ setTimeout(initMap,300); return; }
@@ -258,6 +319,7 @@ function bindSidebarEvents(){
 document.addEventListener('DOMContentLoaded',function(){
   if(typeof L!=='undefined') initMap();
   else setTimeout(function(){if(typeof L!=='undefined')initMap();else alert('Leaflet加载失败，请开启VPN后刷新');},5000);
+  loadAmapJS(); // 异步加载高德 JS API（未填 key 则跳过）
 });
 if(typeof L!=='undefined') initMap();
 
