@@ -40,7 +40,7 @@ details:not([open]) .section-hdr .arrow{transform:rotate(-90deg)}
 .rental-tag{background:#e94560;color:#fff;padding:2px 7px;border-radius:3px;font-size:10px;white-space:nowrap;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35)}
 .info-popup{font-size:11px;line-height:1.6}
 .info-popup b{color:#e94560}
-@media(max-width:768px){#container{flex-direction:column}#map{flex:1;min-height:55vh}#panel{width:100%;max-height:45vh;padding:10px}#panel h2{font-size:18px}.btn{font-size:13px;padding:8px 12px;margin:4px}.btn.sm{font-size:12px;padding:6px 10px}.route-row{font-size:13px;padding:6px 5px}.solo-btn{font-size:16px;padding:6px 10px;line-height:20px}.route-row input{transform:scale(1.15);margin-right:8px}#search-box{font-size:13px;padding:8px}}
+@media(max-width:768px){#container{flex-direction:column}#map{flex:1;min-height:55vh}#panel{width:100%;max-height:45vh;padding:10px}#panel h2{font-size:18px}.btn{font-size:13px;padding:8px 12px;margin:4px}.btn.sm{font-size:12px;padding:6px 10px}.route-row{font-size:13px;padding:6px 5px}.solo-btn{font-size:16px;padding:6px 10px;line-height:20px}.route-row input{transform:scale(1.15);margin-right:8px}}
 </style>
 </head>
 <body>
@@ -65,7 +65,6 @@ details:not([open]) .section-hdr .arrow{transform:rotate(-90deg)}
       onkeydown="if(event.key==='Enter')searchPlace()">
     <button class="btn sm" onclick="searchPlace()" title="搜索并放大">🔍 搜</button>
   </div>
-  <input type="text" id="search-box" placeholder="🔍 搜索线路/站点..." style="width:100%;padding:5px 8px;margin:6px 0;background:#0f3460;color:#eee;border:1px solid #333;border-radius:4px;font-size:11px" oninput="filterRoutes()">
   <h3>🏢 目的地</h3>
   <div style="font-size:11px;padding:2px 6px;">🔴 <b>所部（洪湖路35号）</b></div>
   <details open>
@@ -161,14 +160,13 @@ var ROUTE_POLYLINES={"1号·小平房→海富漫香林": {"polyline": [[45.7061
 var AMAP_JS_KEY = "0d32b4f029c96252994f348e1e76d6da";
 var AMAP_SECURITY_JSCODE = "5472cc388e4276b63fe6894e2e2407ea"; // 高德安全密钥(securityJsCode)
 var searchMarker = null;
-
 function loadAmapJS(){
   if(!AMAP_JS_KEY) return; // 未填 key 则不加载
   if(window.__amapJsLoaded) return;
   // 设置了安全密钥(securityJsCode)则通过 _AMapSecurityConfig 校验，须在加载脚本前配置
   if(AMAP_SECURITY_JSCODE){ window._AMapSecurityConfig={ securityJsCode: AMAP_SECURITY_JSCODE }; }
   var s=document.createElement('script');
-  s.src='https://webapi.amap.com/maps?v=1.4.15&key='+encodeURIComponent(AMAP_JS_KEY)+'&plugin=AMap.Geocoder,AMap.PlaceSearch';
+  s.src='https://webapi.amap.com/maps?v=2.0&key='+encodeURIComponent(AMAP_JS_KEY)+'&plugin=AMap.Geocoder,AMap.PlaceSearch';
   s.onload=function(){ window.__amapJsLoaded=true; };
   document.head.appendChild(s);
 }
@@ -176,22 +174,23 @@ function loadAmapJS(){
 function searchPlace(){
   var inp=document.getElementById('place-search'); if(!inp) return;
   var q=inp.value.trim(); if(!q) return;
-  if(!window.AMap || !window.AMap.Geocoder){
-    alert('高德JS检索未就绪：请在 map_template.html 顶部 AMAP_JS_KEY 填入你的高德 JS API key，并在高德控制台把本页域名加入请求白名单。');
+  if(!window.AMap || !window.AMap.PlaceSearch){
+    alert('高德JS检索未就绪：请在 map_template.html 顶部 AMAP_JS_KEY 填入你的高德 JS API key。');
     return;
   }
-  AMap.plugin(['AMap.Geocoder','AMap.PlaceSearch'],function(){
-    var geocoder=new AMap.Geocoder({city:'哈尔滨'});
-    geocoder.getLocation(q,function(status,result){
-      if(status==='complete' && result.geocodes && result.geocodes.length){
-        var g=result.geocodes[0];
-        gotoPlace(g.location.lng, g.location.lat, g.formattedAddress);
+  AMap.plugin(['AMap.PlaceSearch','AMap.Geocoder'],function(){
+    // 优先用 POI 关键词搜索（同高德地图 App 的精度），失败再回退地理编码
+    var ps=new AMap.PlaceSearch({city:'哈尔滨', citylimit:true, pageSize:5, pageIndex:1});
+    ps.search(q,function(s,res){
+      if(s==='complete' && res.poiList && res.poiList.pois && res.poiList.pois.length){
+        var p=res.poiList.pois[0];
+        gotoPlace(p.location.lng, p.location.lat, p.name);
       } else {
-        var ps=new AMap.PlaceSearch({city:'哈尔滨', pageSize:1});
-        ps.search(q,function(s,res){
-          if(s==='complete' && res.poiList && res.poiList.pois && res.poiList.pois.length){
-            var p=res.poiList.pois[0];
-            gotoPlace(p.location.lng, p.location.lat, p.name);
+        var geocoder=new AMap.Geocoder({city:'哈尔滨'});
+        geocoder.getLocation(q,function(st,result){
+          if(st==='complete' && result.geocodes && result.geocodes.length){
+            var g=result.geocodes[0];
+            gotoPlace(g.location.lng, g.location.lat, g.formattedAddress);
           } else {
             alert('未找到「'+q+'」，换个关键词试试（限哈尔滨）。');
           }
@@ -314,12 +313,14 @@ function initMap(){
     allBounds.extend([a.lat,a.lng]);
   });
 
-  L.control({position:'bottomleft'}).onAdd=function(){
+  var _legend=L.control({position:'bottomleft'});
+  _legend.onAdd=function(){
     var d=L.DomUtil.create('div','');
     d.style.cssText='background:rgba(0,0,0,0.75);color:#fff;padding:8px 12px;border-radius:6px;font-size:10px;line-height:1.8;';
     d.innerHTML='<b>图例</b><br><span style="color:#8e44ad;">━</span> 通勤(每日34条)<br><span style="color:#e74c3c;">━</span> 加班(周六7条)<br><span style="color:#3498db;">━</span> 红旗(周五/日3条)<br><span style="color:#f00;">●</span> 所部<br><span style="color:#f33;">🏘️</span> 推荐租房区';
     return d;
-  }.addTo(map);
+  };
+  _legend.addTo(map);
 }
 
 function updateCounter(){
@@ -406,14 +407,6 @@ function toggleHQ(){
   updateCounter();
 }
 function fitBest(){map.fitBounds([[45.69,126.54],[45.75,126.60]],{padding:[20,20]});}
-function filterRoutes(){
-  var q=document.getElementById('search-box').value.toLowerCase();
-  var rows=document.querySelectorAll('.route-row');
-  for(var i=0;i<rows.length;i++){
-    var lbl=rows[i].querySelector('.route-label').textContent.toLowerCase();
-    rows[i].style.display=(!q||lbl.indexOf(q)>=0)?'flex':'none';
-  }
-}
 </script>
 </body>
 </html>
