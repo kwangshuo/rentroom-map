@@ -158,12 +158,15 @@ var ROUTE_POLYLINES={"1号·小平房→海富漫香林": {"polyline": [[45.7061
  *       http://localhost:8000               （本地测试，需 python -m http.server 跑，勿用 file://）
  *  把下面这个 key 换成你的，然后重新 build_map.py 即可。
  */
-var AMAP_JS_KEY = "「把你的高德JS_API_key填到这里（替换整段引号内容）」";
+var AMAP_JS_KEY = "0d32b4f029c96252994f348e1e76d6da";
+var AMAP_SECURITY_JSCODE = "5472cc388e4276b63fe6894e2e2407ea"; // 高德安全密钥(securityJsCode)
 var searchMarker = null;
 
 function loadAmapJS(){
-  if(!AMAP_JS_KEY || AMAP_JS_KEY.indexOf('填到这里')>=0) return; // 未填 key 则不加载
+  if(!AMAP_JS_KEY) return; // 未填 key 则不加载
   if(window.__amapJsLoaded) return;
+  // 设置了安全密钥(securityJsCode)则通过 _AMapSecurityConfig 校验，须在加载脚本前配置
+  if(AMAP_SECURITY_JSCODE){ window._AMapSecurityConfig={ securityJsCode: AMAP_SECURITY_JSCODE }; }
   var s=document.createElement('script');
   s.src='https://webapi.amap.com/maps?v=1.4.15&key='+encodeURIComponent(AMAP_JS_KEY)+'&plugin=AMap.Geocoder,AMap.PlaceSearch';
   s.onload=function(){ window.__amapJsLoaded=true; };
