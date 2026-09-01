@@ -58,13 +58,14 @@ details:not([open]) .section-hdr .arrow{transform:rotate(-90deg)}
     2️⃣ 👁 点「只看」单独查看一条线并自动缩放<br>
     3️⃣ 🔍 顶部搜索框可搜哈尔滨地名并放大定位<br>
     4️⃣ 🖱️ 点地图上站点圆点 = 看站名/到站时间/序号<br>
-    5️⃣ 🔴加班 / 🔵红旗 一键批量开关
+    5️⃣ 🔴加班 / 🔵红旗 / 🟣通勤 一键开关
   </div>
   <div>
     <button class="btn" onclick="showAll()">✅ 全部显示</button>
     <button class="btn sm" onclick="hideAll()">❌ 全部隐藏</button>
     <button class="btn sm" onclick="toggleJB()">🔴 加班显隐</button>
     <button class="btn sm" onclick="toggleHQ()">🔵 红旗显隐</button>
+    <button class="btn sm" onclick="toggleTQ()">🟣 通勤显隐</button>
     <button class="btn sm" onclick="map.fitBounds(allBounds)">🔍 全图</button>
     <button class="btn sm" onclick="fitBest()">📍 推荐区</button>
     <div id="route-counter">👁 显示: <span id="visible-count">41</span>/44 条</div>
@@ -419,6 +420,19 @@ function toggleHQ(){
       if(hqVisible) rl.layer.addTo(map); else map.removeLayer(rl.layer);
       var row=document.querySelector('.route-row[data-rid="'+k+'"]');
       if(row){row.classList.toggle('off',!hqVisible);var cb=row.querySelector('input');if(cb)cb.checked=hqVisible;}
+    }
+  }
+  updateCounter();
+}
+var tqVisible = true;  // 通勤线默认显示
+function toggleTQ(){
+  tqVisible = !tqVisible;
+  for(var k in routeLayers){
+    if(routeLayers[k].cat==='tq'){
+      var rl=routeLayers[k];
+      if(tqVisible) rl.layer.addTo(map); else map.removeLayer(rl.layer);
+      var row=document.querySelector('.route-row[data-rid="'+k+'"]');
+      if(row){row.classList.toggle('off',!tqVisible);var cb=row.querySelector('input');if(cb)cb.checked=tqVisible;}
     }
   }
   updateCounter();
