@@ -272,11 +272,11 @@ function initMap(){
       if (stops.length > 0 && si === 0) {
         var last = stops[stops.length - 1];
         if (roadData && roadData.to_dest && roadData.to_dest.length > 0) {
-          destLine=L.polyline(roadData.to_dest, {color:color,weight:destW,opacity:.3,dashArray:'4 6'}).addTo(g);
+          destLine=L.polyline(roadData.to_dest, {color:color,weight:destW,opacity:.5,dashArray:'4 6'}).addTo(g);
         } else {
-          destLine=L.polyline([[last[2],last[1]],DEST],{color:color,weight:destW,opacity:.3,dashArray:'4 6'}).addTo(g);
+          destLine=L.polyline([[last[2],last[1]],DEST],{color:color,weight:destW,opacity:.5,dashArray:'4 6'}).addTo(g);
         }
-        if(destLine) _allLines.push({line:destLine, baseW:1.5});
+        if(destLine) _allLines.push({line:destLine, baseW:2.2});
       }
 
       var cat=si===0?'tq':si===1?'jb':'hq';
