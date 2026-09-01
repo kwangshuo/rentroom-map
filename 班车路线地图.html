@@ -17,6 +17,10 @@ body{font-family:'Microsoft YaHei','PingFang SC',sans-serif;background:#1a1a2e}
 .subtitle{color:#999;font-size:10px;margin-bottom:6px}
 .stats{background:rgba(255,255,255,0.05);border-radius:6px;padding:6px 10px;margin:6px 0;font-size:11px}
 .stats span{color:#f0a500;font-weight:bold}
+.usage-title{color:#f0a500;font-weight:bold;font-size:12px;margin:2px 0}
+.usage{background:rgba(255,255,255,0.05);border-radius:6px;padding:6px 10px;margin:2px 0 8px;font-size:11px;line-height:1.85}
+.warnbox{background:rgba(233,69,96,0.12);border:1px solid rgba(233,69,96,0.4);border-radius:6px;padding:6px 10px;margin:8px 0;font-size:11px;line-height:1.7}
+.disclaimer{color:#f0a500;font-size:11px;margin-top:8px;text-align:center}
 .btn{display:inline-block;padding:5px 10px;margin:3px;background:#e94560;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:11px}
 .btn:hover{background:#ff6b81}
 .btn.sm{background:#0f3460;font-size:10px;padding:3px 7px}
@@ -47,9 +51,15 @@ details:not([open]) .section-hdr .arrow{transform:rotate(-90deg)}
 <div id="container">
 <div id="map"></div>
 <div id="panel">
-  <h2>🚌 班车路线图（全44线）</h2>
-  <div class="subtitle">高德道路路线 · 目的地: 洪湖路35号 · 职工通勤34线+加班7+红旗3</div>
-  <div class="stats">📊 <span>34条</span>通勤+7加班+3红旗=<span>44条</span>线路 · <span>275</span>站点 · 高德精准坐标+道路路线</div>
+  <h2>🚌 班车路线地图</h2>
+  <div class="usage-title">📖 使用说明</div>
+  <div class="usage">
+    1️⃣ ☑️ 勾选/取消线路 = 显示/隐藏该线<br>
+    2️⃣ 👁 点「只看」单独查看一条线并自动缩放<br>
+    3️⃣ 🔍 顶部搜索框可搜哈尔滨地名并放大定位<br>
+    4️⃣ 🖱️ 点地图上站点圆点 = 看站名/到站时间/序号<br>
+    5️⃣ 🔴加班 / 🔵红旗 一键批量开关
+  </div>
   <div>
     <button class="btn" onclick="showAll()">✅ 全部显示</button>
     <button class="btn sm" onclick="hideAll()">❌ 全部隐藏</button>
@@ -86,6 +96,13 @@ details:not([open]) .section-hdr .arrow{transform:rotate(-90deg)}
     🥉 <b>群力东·天鹅湾</b>（14号·06:40~06:53）<br> 天鹅湾 ¥1,500~2,000 | 群力远大<br>
     4️⃣ <b>香坊三合路</b>（2号·06:40~06:50）<br> 绿海华庭 ¥1,200~1,800 | 乐松
   </div>
+
+  <div class="stats" style="margin-top:12px">📊 <span>34条</span>通勤+7加班+3红旗=<span>44条</span>线路 · <span>275</span>站点 · 高德精准坐标+道路路线</div>
+  <div class="warnbox">⚠️ <b>以下线路尚未校准坐标</b>，站点为近似位置、仅供参考：<br>
+    🔵 加班3·果园街→哈西→王岗 | 加班4·立汇→鲁商 | 加班5·老所部→群力家园<br>
+    🔵 加班6·松北区世茂大道 | 加班7·平房区→糖研<br>
+    🔴 红旗1·老所部→群力家园 | 红旗2·小平房→新三中 | 红旗3·信恒→民生尚都</div>
+  <div class="disclaimer">ℹ️ 提示：<b>路线走向与站点位置仅供通勤参考，实际以班车站点为准</b></div>
 </div>
 </div>
 
