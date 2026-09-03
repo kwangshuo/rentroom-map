@@ -32,6 +32,25 @@ from build_map import tq, jb, hq, geo as stops_geo
 # Destination
 DEST = stops_geo.get('所部', {'lng': 126.502544, 'lat': 45.700566})
 
+# ─────────────────────────────────────────────────────────────
+# 强制走向（手动干预高德自动选路）
+# 有些路线要求在特定路口转/不转，但高德按"最快"自己走。可在这里
+# 注入"途经点"坐标，强制路线经过这个路口（经过该点自然就按你想的转）。
+#
+# 格式：{ '路线名(须与build_map完全一致)': {
+#           '某站点名': [(经, 纬), ...],      # 「该站之后」强制经过的路口坐标
+#           '_dest':    [(经, 纬), ...],      # 「最后一站 → 所部」虚线这一段强制经过
+#        } }
+# 想强制末段到所部的某个路口，用 '_dest'。可多条、多坐标。
+# ─────────────────────────────────────────────────────────────
+FORCED = {
+    # 示例：9号在"涧桥西畔"之后强制经过某个路口
+    # '9号·金域蓝城→王岗 ⭐': {
+    #     '涧桥西畔': [(126.580, 45.690)],
+    #     '_dest':    [(126.520, 45.705)],
+    # },
+}
+
 
 def get_driving_polyline(origin_lng, origin_lat, dest_lng, dest_lat, waypoints=None):
     """
@@ -129,28 +148,49 @@ def main():
 
             # Collect valid coords for this route
             coords = []
+            valid_names = []   # 保留下来的站点名（与 coords 一一对应）
             for s in stops:
                 c = stops_geo.get(s[0])
                 if c:
                     coords.append((c['lng'], c['lat']))
+                    valid_names.append(s[0])
+
+            forced = FORCED.get(route_name, {})
+            forced_note = []
 
             grand_total += 1
             entry = {'polyline': None, 'to_dest': None}
 
             if len(coords) >= 2:
                 if category in ('jb', 'hq'):
-                    # 加班/红旗线路：由所部开往终点（反向）
+                    # 加班/红旗线路：由所部开往终点（反向）——未内置强制点，见 FORCED 注释
                     origin = (DEST['lng'], DEST['lat'])
                     destination = coords[0]
                     waypoints = list(reversed(coords[1:])) if len(coords) > 1 else None
+                    if forced:
+                        print('    [注意] 加班/红旗线暂不支持 FORCED 强制点，已忽略')
                 else:
                     origin = coords[0]
                     destination = coords[-1]
-                    waypoints = coords[1:-1] if len(coords) > 2 else None
+                    # 按行程顺序插入强制路口点：age -> 起点, 之后每隔一站的 'X站' 点插在其后
+                    wps = []
+                    for i in range(len(coords) - 1):   # 0..len-2
+                        if i >= 1:
+                            wps.append(coords[i])       # 中间站本身作为途经点
+                        for pt in forced.get(valid_names[i], []):
+                            wps.append(pt)
+                            forced_note.append(valid_names[i])
+                    waypoints = wps if wps else None
+                dest_forced = forced.get('_dest', [])
 
                 wp_info = (' +%d wp' % len(waypoints)) if waypoints else ''
                 print('[%d/%d] %s %s (%d stops%s)...' % (
                     grand_total, 44, category.upper(), route_name, len(coords), wp_info))
+
+                if forced_note or dest_forced:
+                    print('    [强制点] 经 %s%s' % (
+                        '、'.join(dict.fromkeys(forced_note)) if forced_note else '',
+                        ' + 末段(dest)' if dest_forced else ''))
 
                 # Route polyline
                 poly = get_driving_polyline(
@@ -172,7 +212,8 @@ def main():
                 else:
                     dest_poly = get_driving_polyline(
                         destination[0], destination[1],
-                        DEST['lng'], DEST['lat']
+                        DEST['lng'], DEST['lat'],
+                        waypoints=dest_forced if dest_forced else None
                     )
                     if dest_poly:
                         entry['to_dest'] = dest_poly
