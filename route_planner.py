@@ -44,11 +44,13 @@ DEST = stops_geo.get('所部', {'lng': 126.502544, 'lat': 45.700566})
 # 想强制末段到所部的某个路口，用 '_dest'。可多条、多坐标。
 # ─────────────────────────────────────────────────────────────
 FORCED = {
-    # 示例：9号在"涧桥西畔"之后强制经过某个路口
+    # 示例（通勤）：9号在"涧桥西畔"之后强制经过某个路口
     # '9号·金域蓝城→王岗 ⭐': {
     #     '涧桥西畔': [(126.580, 45.690)],
     #     '_dest':    [(126.520, 45.705)],
     # },
+    # 加班/红旗线：所部→最后一站(最靠所部那段)用 '_start'；
+    #          指定"前向第 j 站"之后强制经过某点用 '站点名':[点]。
 }
 
 
@@ -163,12 +165,29 @@ def main():
 
             if len(coords) >= 2:
                 if category in ('jb', 'hq'):
-                    # 加班/红旗线路：由所部开往终点（反向）——未内置强制点，见 FORCED 注释
+                    # 加班/红旗线路：由所部开往终点（反向）
                     origin = (DEST['lng'], DEST['lat'])
                     destination = coords[0]
                     waypoints = list(reversed(coords[1:])) if len(coords) > 1 else None
-                    if forced:
-                        print('    [注意] 加班/红旗线暂不支持 FORCED 强制点，已忽略')
+                    # '_start' = 所部→最后一站(最靠所部那段)，把强制点插在最前
+                    fstart = forced.get('_start', [])
+                    if fstart:
+                        wps = list(fstart) + (waypoints or [])
+                        waypoints = wps
+                        forced_note.append('_start')
+                    # 指定"前向/真实第 j 站"之后强制经过某点：反向绘制里该站位于
+                    # waypoints 的 index = len-1-j；强制点插在其后。
+                    if waypoints:
+                        _w = list(waypoints)
+                        for j in range(1, len(coords)):
+                            name = valid_names[j]
+                            pts = forced.get(name, [])
+                            if pts:
+                                insert_at = len(coords) - j      # coords[j]之后 → index len-j
+                                insert_at = min(max(insert_at, 1), min(len(_w), insert_at))
+                                _w[insert_at:insert_at] = pts
+                                waypoints = _w
+                                forced_note.append(name)
                 else:
                     origin = coords[0]
                     destination = coords[-1]
